@@ -1,98 +1,514 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useState } from "react";
+import {
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+  TextStyle,
+  ImageStyle,
+} from "react-native";
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+// ─── Palette ────────────────────────────────────────────────────────────────
+const C = {
+  bg: "#0a0a0a",
+  surface: "#151515",
+  border: "#222222",
+  accent: "#ff4655",
+  accentDim: "#cc2233",
+  textPrimary: "#ffffff",
+  textSecondary: "#aaaaaa",
+  textMuted: "#666666",
+  cardBg: "#1a1a1a",
+  tagBg: "#2a0a0e",
+  tagText: "#ff6b77",
+  vpBg: "#0d1a2a",
+  vpText: "#4fc3f7",
+  navBg: "#111111",
+  navActive: "#ff4655",
+  navInactive: "#666666",
+};
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
+// ─── Product Data ────────────────────────────────────────────────────────────
+const SKINS = [
+  {
+    id: 1,
+    name: "EX.O Vandal",
+    type: "Vandal",
+    vp: 2375,
+    price: 625,
+    image: require("@/assets/images/skins/exo-vandal.png"),
+    tagColor: "#6c3ccf",
+    tagBg: "#2a1a4a",
+    tagText: "#c084fc",
+  },
+  {
+    id: 2,
+    name: "Kuronami Vandal",
+    type: "Vandal",
+    vp: 2375,
+    price: 625,
+    image: require("@/assets/images/skins/kuronami-vandal.png"),
+    tagColor: "#1e6fb0",
+    tagBg: "#0a1e30",
+    tagText: "#4fc3f7",
+  },
+  {
+    id: 3,
+    name: "Kuronami no Yaiba",
+    type: "Melee",
+    vp: 5350,
+    price: 1268,
+    image: require("@/assets/images/skins/kuronami-yaiba.png"),
+    tagColor: "#607d8b",
+    tagBg: "#1a2530",
+    tagText: "#90a4ae",
+  },
+];
+
+// ─── VP Diamond Icon ─────────────────────────────────────────────────────────
+const VPIcon = () => (
+  <View style={vpStyles.diamond}>
+    <Text style={vpStyles.text}>VP</Text>
+  </View>
+);
+
+const vpStyles = StyleSheet.create({
+  diamond: {
+    width: 18,
+    height: 18,
+    backgroundColor: "#4fc3f7",
+    borderRadius: 3,
+    justifyContent: "center",
+    alignItems: "center",
+    transform: [{ rotate: "45deg" }],
+  } as ViewStyle,
+  text: {
+    fontSize: 6,
+    fontWeight: "700",
+    color: "#0a1a2a",
+    transform: [{ rotate: "-45deg" }],
+  } as TextStyle,
+});
+
+// ─── Skin Card ───────────────────────────────────────────────────────────────
+const SkinCard = ({ skin }: { skin: (typeof SKINS)[number] }) => (
+  <View style={card.wrapper}>
+    {/* Product Image */}
+    <View style={[card.imageBox, { backgroundColor: skin.tagBg }]}>
+      <Image source={skin.image} style={card.image} resizeMode="contain" />
+    </View>
+
+    {/* Info */}
+    <View style={card.info}>
+      <Text style={card.name} numberOfLines={1}>
+        {skin.name}
+      </Text>
+      <View style={[card.typePill, { backgroundColor: skin.tagBg }]}>
+        <Text style={[card.typeText, { color: skin.tagText }]}>
+          {skin.type}
+        </Text>
+      </View>
+
+      {/* VP row */}
+      <View style={card.vpRow}>
+        <VPIcon />
+        <Text style={card.vpText}>{skin.vp.toLocaleString()} VP</Text>
+      </View>
+    </View>
+
+    {/* Price */}
+    <View style={card.priceBox}>
+      <Text style={card.price}>฿{skin.price.toLocaleString()}</Text>
+      <TouchableOpacity style={card.buyBtn} activeOpacity={0.75}>
+        <Text style={card.buyText}>Buy</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+);
+
+const card = StyleSheet.create({
+  wrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: C.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: C.border,
+    overflow: "hidden",
+    marginBottom: 12,
+  } as ViewStyle,
+  imageBox: {
+    width: 100,
+    height: 76,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 6,
+  } as ViewStyle,
+  image: {
+    width: "100%",
+    height: "100%",
+  } as ImageStyle,
+  info: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 4,
+    justifyContent: "center",
+  } as ViewStyle,
+  name: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: C.textPrimary,
+  } as TextStyle,
+  typePill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  } as ViewStyle,
+  typeText: {
+    fontSize: 10,
+    fontWeight: "600",
+  } as TextStyle,
+  vpRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 2,
+  } as ViewStyle,
+  vpText: {
+    fontSize: 11,
+    color: "#4fc3f7",
+    fontWeight: "600",
+  } as TextStyle,
+  priceBox: {
+    paddingRight: 12,
+    alignItems: "flex-end",
+    gap: 6,
+    justifyContent: "center",
+  } as ViewStyle,
+  price: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: C.accent,
+  } as TextStyle,
+  buyBtn: {
+    backgroundColor: C.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 6,
+  } as ViewStyle,
+  buyText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  } as TextStyle,
+});
+
+// ─── Overview Card ────────────────────────────────────────────────────────────
+const OverviewCard = ({
+  icon,
+  value,
+  label,
+  accent,
+}: {
+  icon: string;
+  value: string | number;
+  label: string;
+  accent: string;
+}) => (
+  <View style={[ov.card, { borderTopColor: accent }]}>
+    <Text style={ov.icon}>{icon}</Text>
+    <Text style={[ov.value, { color: accent }]}>{value}</Text>
+    <Text style={ov.label}>{label}</Text>
+  </View>
+);
+
+const ov = StyleSheet.create({
+  card: {
+    flex: 1,
+    backgroundColor: C.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderTopWidth: 3,
+    padding: 12,
+    alignItems: "center",
+    gap: 4,
+  } as ViewStyle,
+  icon: {
+    fontSize: 20,
+  } as TextStyle,
+  value: {
+    fontSize: 22,
+    fontWeight: "800",
+  } as TextStyle,
+  label: {
+    fontSize: 10,
+    color: C.textSecondary,
+    textAlign: "center",
+  } as TextStyle,
+});
+
+// ─── Main Screen ─────────────────────────────────────────────────────────────
+export default function OwenShopHome() {
+  const [activeTab, setActiveTab] = useState<"Home" | "Add" | "Products" | "Categories">("Home");
+
   return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+    <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+
+      {/* ── Top Header ── */}
+      <View style={styles.header}>
+        {/* Logo */}
+        <Image
+          source={require("@/assets/images/owen-shop-logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+
+        {/* Shop Name */}
+        <View style={styles.shopNameBox}>
+          <Text style={styles.shopName}>Owen Shop</Text>
+          <Text style={styles.shopSub}>Valorant Skins Store</Text>
+        </View>
+
+        {/* Admin Avatar */}
+        <TouchableOpacity style={styles.avatar} activeOpacity={0.8}>
+          <Text style={styles.avatarText}>AD</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* ── Divider ── */}
+      <View style={styles.divider} />
+
+      {/* ── Scrollable Content ── */}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Overview */}
+        <Text style={styles.sectionTitle}>Overview</Text>
+        <View style={styles.overviewRow}>
+          <OverviewCard icon="🎮" value={156} label="Total Skins" accent="#ff4655" />
+          <OverviewCard icon="🛒" value={34} label="New Orders" accent="#4fc3f7" />
+          <OverviewCard icon="⚠️" value={2} label="Low Stock" accent="#f97316" />
+        </View>
+
+        {/* Trending Section */}
+        <View style={styles.trendingHeader}>
+          <Text style={styles.sectionTitle}>Trending</Text>
+          <TouchableOpacity activeOpacity={0.6}>
+            <Text style={styles.seeAll}>See all</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Skin Cards */}
+        <View style={styles.skinList}>
+          {SKINS.map((skin) => (
+            <SkinCard key={skin.id} skin={skin} />
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* ── Bottom Navigation ── */}
+      <View style={styles.bottomNav}>
+        {(["Home", "Add", "Products", "Categories"] as const).map((tab) => {
+          const isActive = activeTab === tab;
+          const icons: Record<string, string> = {
+            Home: "🏠",
+            Add: "➕",
+            Products: "📦",
+            Categories: "🏷️",
+          };
+          return (
+            <TouchableOpacity
+              key={tab}
+              style={styles.navItem}
+              onPress={() => setActiveTab(tab)}
+              activeOpacity={0.65}
+            >
+              <View
+                style={[
+                  styles.navIconCircle,
+                  tab === "Add" && styles.navAddCircle,
+                  tab === "Add" && isActive && styles.navAddCircleActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.navIcon,
+                    { color: isActive ? C.navActive : C.navInactive },
+                    tab === "Add" && styles.navAddIcon,
+                  ]}
+                >
+                  {icons[tab]}
+                </Text>
+              </View>
+              <Text
+                style={[
+                  styles.navLabel,
+                  { color: isActive ? C.navActive : C.navInactive },
+                ]}
+              >
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </SafeAreaView>
   );
 }
 
-export default function HomeScreen() {
-  return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
-  );
-}
-
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
-  },
-  safeArea: {
+    backgroundColor: C.bg,
+  } as ViewStyle,
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: C.navBg,
+    gap: 10,
+  } as ViewStyle,
+  logo: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+  } as ImageStyle,
+  shopNameBox: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
-  },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  } as ViewStyle,
+  shopName: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: C.accent,
+    letterSpacing: 0.5,
+  } as TextStyle,
+  shopSub: {
+    fontSize: 11,
+    color: C.textMuted,
+    fontWeight: "500",
+  } as TextStyle,
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: C.accent,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: C.accentDim,
+  } as ViewStyle,
+  avatarText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: 14,
+    letterSpacing: 1,
+  } as TextStyle,
+
+  divider: {
+    height: 1,
+    backgroundColor: C.border,
+  } as ViewStyle,
+
+  // Scroll
+  scroll: {
     flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
+  } as ViewStyle,
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 80, // clear bottom nav
+  } as ViewStyle,
+
+  // Section titles
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: C.textPrimary,
+    marginBottom: 12,
+  } as TextStyle,
+
+  // Overview
+  overviewRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 24,
+  } as ViewStyle,
+
+  // Trending
+  trendingHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  } as ViewStyle,
+  seeAll: {
+    fontSize: 13,
+    color: C.accent,
+    fontWeight: "600",
+  } as TextStyle,
+
+  // Skin list
+  skinList: {
+    gap: 0,
+  } as ViewStyle,
+
+  // Bottom Nav
+  bottomNav: {
+    flexDirection: "row",
+    backgroundColor: C.navBg,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    height: 64,
+    alignItems: "center",
+  } as ViewStyle,
+  navItem: {
+    flex: 1,
+    height: 64,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 3,
+  } as ViewStyle,
+  navIconCircle: {
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 16,
+  } as ViewStyle,
+  navAddCircle: {
+    width: 36,
+    height: 36,
+    backgroundColor: "#1e1e1e",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: C.border,
+  } as ViewStyle,
+  navAddCircleActive: {
+    backgroundColor: "#2a0a0e",
+    borderColor: C.accent,
+  } as ViewStyle,
+  navIcon: {
+    fontSize: 18,
+  } as TextStyle,
+  navAddIcon: {
+    fontSize: 16,
+  } as TextStyle,
+  navLabel: {
+    fontSize: 10,
+    fontWeight: "600",
+  } as TextStyle,
 });
