@@ -8,7 +8,7 @@
         "tagColor": "#6c3ccf",
         "tagBg": "#2a1a4a",
         "tagText": "#c084fc",
-        "image_url":"https://static.wikia.nocookie.net/valorant/images/9/9a/Phaseguard_Vandal.png/revision/latest?cb=20250624202410"
+        "image_url":"https://valorant.fandom.com/wiki/Phaseguard_Collection?file=Phaseguard_Vandal.png"
     },
     {
         "id": 2,
@@ -19,7 +19,7 @@
         "tagColor": "#6c3ccf",
         "tagBg": "#2a1a4a",
         "tagText": "#c084fc",
-        "image_url":"https://static.wikia.nocookie.net/valorant/images/0/0e/Cyrax_Vandal.png/revision/latest?cb=20230711203347"
+        "image_url":"https://valorant.fandom.com/wiki/CYRAX_Collection?file=CYRAX_Vandal.png"
     },
     {
         "id": 3,
@@ -30,6 +30,6 @@
         "tagColor": "#6c3ccf",
         "tagBg": "#2a1a4a",
         "tagText": "#c084fc",
-        "image_url":"https://static.wikia.nocookie.net/valorant/images/2/27/Reaver_Vandal.png/revision/latest?cb=20230711203347"
+        "image_url":"https://valorant.fandom.com/wiki/Reaver_Collection?file=Reaver_Vandal.png"
     }
 ]

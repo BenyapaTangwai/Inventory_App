@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   ImageStyle,
@@ -32,7 +32,7 @@ const C = {
   navInactive: "#666666",
 };
 
-const SKINS = require('../../products.json') as Array<any>;
+const PRODUCTS_URL = 'https://raw.githubusercontent.com/BenyapaTangwai/Inventory_App/main/products.json';
 
 const VPIcon = () => (
   <View style={vpStyles.diamond}>
@@ -220,6 +220,36 @@ const ov = StyleSheet.create({
 
 export default function OwenShopHome() {
   const [activeTab, setActiveTab] = useState<"Home" | "Add" | "Products" | "Categories">("Home");
+  const [skins, setSkins] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    fetch(PRODUCTS_URL)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (!mounted) return;
+        if (Array.isArray(data)) setSkins(data);
+        else if (data && Array.isArray((data as any).products)) setSkins((data as any).products);
+        else setError('Invalid product data');
+      })
+      .catch((e: any) => {
+        if (!mounted) return;
+        setError(String(e?.message ?? e));
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -273,9 +303,13 @@ export default function OwenShopHome() {
 
         {/* Skin Cards */}
         <View style={styles.skinList}>
-          {SKINS.map((skin) => (
-            <SkinCard key={skin.id} skin={skin} />
-          ))}
+          {loading ? (
+            <Text style={styles.shopSub}>Loading...</Text>
+          ) : error ? (
+            <Text style={styles.shopSub}>{error}</Text>
+          ) : (
+            skins.map((skin) => <SkinCard key={skin.id} skin={skin} />)
+          )}
         </View>
       </ScrollView>
 
