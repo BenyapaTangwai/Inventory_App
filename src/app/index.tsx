@@ -79,26 +79,36 @@ const card = StyleSheet.create({
     alignItems: "center",
     backgroundColor: C.surface,
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 5,
     borderColor: C.border,
     overflow: "hidden",
-    marginBottom: 12,
+    marginBottom: 9,
   } as ViewStyle,
   imageBox: {
-    width: 120,
-    height: 80,
+    width: 150,
+    height: 100,
     justifyContent: "center",
     alignItems: "center",
-    padding: 6,
+    padding: 1,
+    paddingLeft: 12,
     overflow: 'hidden',
     borderTopLeftRadius: 12,
     borderBottomLeftRadius: 12,
   } as ViewStyle,
+  imageInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  } as ViewStyle,
   image: {
-    width: "100%",
-    height: "100%",
+    width: "90%",
+    height: "90%",
     alignSelf: 'center',
     borderRadius: 8,
+    marginLeft: 4,
   } as ImageStyle,
   info: {
     flex: 1,
@@ -167,17 +177,21 @@ const SkinCard = ({ skin }: { skin: any }) => {
     <View style={card.wrapper}>
       {/* Product Image */}
       {imgUri && !imgError ? (
-        <View style={[card.imageBox, { backgroundColor: '#140606' }]}>
-          <Image
-            source={{ uri: imgUri }}
-            style={card.image}
-            resizeMode="contain"
-            onError={() => setImgError(true)}
-          />
+        <View style={card.imageBox}>
+          <View style={[card.imageInner, { backgroundColor: '#140606' }]}>
+            <Image
+              source={{ uri: imgUri }}
+              style={card.image}
+              resizeMode="contain"
+              onError={() => setImgError(true)}
+            />
+          </View>
         </View>
       ) : (
-        <View style={[card.imageBox, { backgroundColor: '#1a0a0d', justifyContent: 'center' }]}>
-          <Text style={{ color: '#ff6b77', fontWeight: '700' }}>No image</Text>
+        <View style={card.imageBox}>
+          <View style={[card.imageInner, { backgroundColor: '#1a0a0d', justifyContent: 'center' }]}>
+            <Text style={{ color: '#ff6b77', fontWeight: '700' }}>No image</Text>
+          </View>
         </View>
       )}
 
@@ -187,15 +201,14 @@ const SkinCard = ({ skin }: { skin: any }) => {
           {skin.name}
         </Text>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
-          <View style={[card.typePill, { backgroundColor: tagBg }]}>
+        <View style={{ marginTop: 6 }}>
+          <View style={[card.typePill, { backgroundColor: tagBg, marginBottom: 6 }]}>
             <Text style={[card.typeText, { color: tagText }]}>{skin.type || skin.category}</Text>
           </View>
-          <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary }]}>VP: {skin.vp?.toLocaleString?.() ?? skin.vp}</Text>
-          <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary }]}>฿{skin.price?.toLocaleString?.() ?? skin.price}</Text>
-        </View>
 
-        <View style={{ marginTop: 8 }}>
+          <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary, marginBottom: 4 }]}>VP: {skin.vp?.toLocaleString?.() ?? skin.vp}</Text>
+          <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary, marginBottom: 6 }]}>฿{skin.price?.toLocaleString?.() ?? skin.price}</Text>
+
           <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary }]}>Type: {skin.type || '-'}</Text>
         </View>
       </View>
