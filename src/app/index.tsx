@@ -32,7 +32,7 @@ const C = {
   navInactive: "#666666",
 };
 
-const PRODUCTS_URL = 'https://raw.githubusercontent.com/BenyapaTangwai/Inventory_App/main/products.json';
+const PRODUCTS_URL = 'https://raw.githubusercontent.com/BenyapaTangwai/Inventory_App/refs/heads/main/products.json';
 
 const VPIcon = () => (
   <View style={vpStyles.diamond}>
