@@ -1,35 +1,35 @@
 [
     {
-        "id": "1",
-        "name": "Phaseguard Vandal",
-        "stock": 12,
-        "stock_text": "12 in stock",
-        "category": "Vandal Skins",
-        "location_count": 3,
-        "location_text": "3 stores",
-        "badge_status": "Active",
+        "id": 1,
+        "name": "EX.O Vandal",
+        "type": "Vandal",
+        "vp": 2475,
+        "price": 625,
+        "tagColor": "#6c3ccf",
+        "tagBg": "#2a1a4a",
+        "tagText": "#c084fc",
         "image_url":"https://static.wikia.nocookie.net/valorant/images/9/9a/Phaseguard_Vandal.png/revision/latest?cb=20250624202410"
     },
     {
-        "id": "2",
+        "id": 2,
         "name": "CYRAX Vandal",
-        "stock": 10,
-        "stock_text": "10 in stock",
-        "category": "Vandal Skins",
-        "location_count": 4,
-        "location_text": "4 stores",
-        "badge_status": "Active",
-        "image_url":"https://static.wikia.nocookie.net/valorant/images/6/6c/CYRAX_Vandal.png/revision/latest?cb=20250304182053"
+        "type": "Vandal",
+        "vp": 2175,
+        "price": 625,
+        "tagColor": "#6c3ccf",
+        "tagBg": "#2a1a4a",
+        "tagText": "#c084fc",
+        "image_url":"https://static.wikia.nocookie.net/valorant/images/0/0e/Cyrax_Vandal.png/revision/latest?cb=20230711203347"
     },
     {
-        "id": "3",
+        "id": 3,
         "name": "Reaver Vandal",
-        "stock": 1,
-        "stock_text": "1 in stock",
-        "category": "Vandal Skins",
-        "location_count": 1,
-        "location_text": "1 stores",
-        "badge_status": "Low in stock",
+        "type": "Vandal",
+        "vp": 1175,
+        "price": 500,
+        "tagColor": "#6c3ccf",
+        "tagBg": "#2a1a4a",
+        "tagText": "#c084fc",
         "image_url":"https://static.wikia.nocookie.net/valorant/images/2/27/Reaver_Vandal.png/revision/latest?cb=20230711203347"
     }
 ]
