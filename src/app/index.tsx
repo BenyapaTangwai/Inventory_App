@@ -13,7 +13,6 @@ import {
   ImageStyle,
 } from "react-native";
 
-// ─── Palette ────────────────────────────────────────────────────────────────
 const C = {
   bg: "#0a0a0a",
   surface: "#151515",
@@ -33,7 +32,6 @@ const C = {
   navInactive: "#666666",
 };
 
-// ─── Product Data ────────────────────────────────────────────────────────────
 const SKINS = [
   {
     id: 1,
@@ -70,7 +68,6 @@ const SKINS = [
   },
 ];
 
-// ─── VP Diamond Icon ─────────────────────────────────────────────────────────
 const VPIcon = () => (
   <View style={vpStyles.diamond}>
     <Text style={vpStyles.text}>VP</Text>
@@ -95,7 +92,6 @@ const vpStyles = StyleSheet.create({
   } as TextStyle,
 });
 
-// ─── Skin Card ───────────────────────────────────────────────────────────────
 const SkinCard = ({ skin }: { skin: (typeof SKINS)[number] }) => (
   <View style={card.wrapper}>
     {/* Product Image */}
@@ -210,7 +206,6 @@ const card = StyleSheet.create({
   } as TextStyle,
 });
 
-// ─── Overview Card ────────────────────────────────────────────────────────────
 const OverviewCard = ({
   icon,
   value,
@@ -255,7 +250,6 @@ const ov = StyleSheet.create({
   } as TextStyle,
 });
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function OwenShopHome() {
   const [activeTab, setActiveTab] = useState<"Home" | "Add" | "Products" | "Categories">("Home");
 
@@ -367,7 +361,6 @@ export default function OwenShopHome() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
