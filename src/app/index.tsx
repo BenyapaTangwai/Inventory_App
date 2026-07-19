@@ -85,8 +85,8 @@ const card = StyleSheet.create({
     marginBottom: 12,
   } as ViewStyle,
   imageBox: {
-    width: 100,
-    height: 76,
+    width: 120,
+    height: 80,
     justifyContent: "center",
     alignItems: "center",
     padding: 6,
@@ -97,8 +97,8 @@ const card = StyleSheet.create({
   image: {
     width: "100%",
     height: "100%",
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
+    alignSelf: 'center',
+    borderRadius: 8,
   } as ImageStyle,
   info: {
     flex: 1,
@@ -171,7 +171,7 @@ const SkinCard = ({ skin }: { skin: any }) => {
           <Image
             source={{ uri: imgUri }}
             style={card.image}
-            resizeMode="cover"
+            resizeMode="contain"
             onError={() => setImgError(true)}
           />
         </View>
