@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Image,
+  ImageStyle,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
   Text,
+  TextStyle,
   TouchableOpacity,
   View,
   ViewStyle,
-  TextStyle,
-  ImageStyle,
 } from "react-native";
 
 const C = {
@@ -32,41 +32,7 @@ const C = {
   navInactive: "#666666",
 };
 
-const SKINS = [
-  {
-    id: 1,
-    name: "EX.O Vandal",
-    type: "Vandal",
-    vp: 2375,
-    price: 625,
-    image: require("@/assets/images/skins/exo-vandal.png"),
-    tagColor: "#6c3ccf",
-    tagBg: "#2a1a4a",
-    tagText: "#c084fc",
-  },
-  {
-    id: 2,
-    name: "Kuronami Vandal",
-    type: "Vandal",
-    vp: 2375,
-    price: 625,
-    image: require("@/assets/images/skins/kuronami-vandal.png"),
-    tagColor: "#1e6fb0",
-    tagBg: "#0a1e30",
-    tagText: "#4fc3f7",
-  },
-  {
-    id: 3,
-    name: "Kuronami no Yaiba",
-    type: "Melee",
-    vp: 5350,
-    price: 1268,
-    image: require("@/assets/images/skins/kuronami-yaiba.png"),
-    tagColor: "#607d8b",
-    tagBg: "#1a2530",
-    tagText: "#90a4ae",
-  },
-];
+const SKINS = require('../../products.json') as Array<any>;
 
 const VPIcon = () => (
   <View style={vpStyles.diamond}>
@@ -92,11 +58,11 @@ const vpStyles = StyleSheet.create({
   } as TextStyle,
 });
 
-const SkinCard = ({ skin }: { skin: (typeof SKINS)[number] }) => (
+const SkinCard = ({ skin }: { skin: any }) => (
   <View style={card.wrapper}>
     {/* Product Image */}
-    <View style={[card.imageBox, { backgroundColor: skin.tagBg }]}>
-      <Image source={skin.image} style={card.image} resizeMode="contain" />
+    <View style={[card.imageBox, { backgroundColor: C.tagBg }]}>
+      <Image source={{ uri: skin.image_url }} style={card.image} resizeMode="contain" />
     </View>
 
     {/* Info */}
@@ -104,24 +70,26 @@ const SkinCard = ({ skin }: { skin: (typeof SKINS)[number] }) => (
       <Text style={card.name} numberOfLines={1}>
         {skin.name}
       </Text>
-      <View style={[card.typePill, { backgroundColor: skin.tagBg }]}>
-        <Text style={[card.typeText, { color: skin.tagText }]}>
-          {skin.type}
+      <View style={[card.typePill, { backgroundColor: C.tagBg }]}>
+        <Text style={[card.typeText, { color: C.tagText }]}>
+          {skin.category || skin.badge_status}
         </Text>
       </View>
 
-      {/* VP row */}
+      {/* Stock / Location row */}
       <View style={card.vpRow}>
-        <VPIcon />
-        <Text style={card.vpText}>{skin.vp.toLocaleString()} VP</Text>
+        <Text style={card.vpText}>{skin.stock_text || `${skin.stock ?? 0} in stock`}</Text>
+        <Text style={[card.vpText, { marginLeft: 8, fontSize: 11, color: C.textSecondary }]}>
+          {skin.location_text || ''}
+        </Text>
       </View>
     </View>
 
-    {/* Price */}
+    {/* Action / Badge */}
     <View style={card.priceBox}>
-      <Text style={card.price}>฿{skin.price.toLocaleString()}</Text>
+      <Text style={[card.price, { fontSize: 12, color: C.textSecondary }]}>{skin.badge_status || ''}</Text>
       <TouchableOpacity style={card.buyBtn} activeOpacity={0.75}>
-        <Text style={card.buyText}>Buy</Text>
+        <Text style={card.buyText}>View</Text>
       </TouchableOpacity>
     </View>
   </View>
