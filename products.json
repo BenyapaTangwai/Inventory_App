@@ -5,7 +5,7 @@
         "type": "Vandal",
         "vp": 2475,
         "price": 625,
-        "tagColor": "#6c3ccf",
+        "tagColor": "#cfc53c",
         "tagBg": "#2a1a4a",
         "tagText": "#c084fc",
         "image_url":"https://github.com/BenyapaTangwai/Inventory_App/blob/main/image_Product/Phaseguard_Vandal.webp"
@@ -16,7 +16,7 @@
         "type": "Vandal",
         "vp": 2175,
         "price": 625,
-        "tagColor": "#6c3ccf",
+        "tagColor": "#cf7c3c",
         "tagBg": "#2a1a4a",
         "tagText": "#c084fc",
         "image_url":"https://github.com/BenyapaTangwai/Inventory_App/blob/main/image_Product/CYRAX_Vandal.webp"

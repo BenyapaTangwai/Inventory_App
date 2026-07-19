@@ -32,7 +32,20 @@ const C = {
   navInactive: "#666666",
 };
 
-const PRODUCTS_URL = 'https://raw.githubusercontent.com/BenyapaTangwai/Inventory_App/refs/heads/main/products.json';
+const PRODUCTS_URL = 'https://raw.githubusercontent.com/BenyapaTangwai/Inventory_App/main/products.json';
+
+function normalizeImageUrl(url: string | undefined) {
+  if (!url) return undefined;
+  try {
+    // convert GitHub blob urls to raw.githubusercontent URLs
+    if (url.includes('github.com') && url.includes('/blob/')) {
+      return url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/');
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
 
 const VPIcon = () => (
   <View style={vpStyles.diamond}>
@@ -58,42 +71,7 @@ const vpStyles = StyleSheet.create({
   } as TextStyle,
 });
 
-const SkinCard = ({ skin }: { skin: any }) => (
-  <View style={card.wrapper}>
-    {/* Product Image */}
-    <View style={[card.imageBox, { backgroundColor: C.tagBg }]}>
-      <Image source={{ uri: skin.image_url }} style={card.image} resizeMode="contain" />
-    </View>
 
-    {/* Info */}
-    <View style={card.info}>
-      <Text style={card.name} numberOfLines={1}>
-        {skin.name}
-      </Text>
-      <View style={[card.typePill, { backgroundColor: C.tagBg }]}>
-        <Text style={[card.typeText, { color: C.tagText }]}>
-          {skin.category || skin.badge_status}
-        </Text>
-      </View>
-
-      {/* Stock / Location row */}
-      <View style={card.vpRow}>
-        <Text style={card.vpText}>{skin.stock_text || `${skin.stock ?? 0} in stock`}</Text>
-        <Text style={[card.vpText, { marginLeft: 8, fontSize: 11, color: C.textSecondary }]}>
-          {skin.location_text || ''}
-        </Text>
-      </View>
-    </View>
-
-    {/* Action / Badge */}
-    <View style={card.priceBox}>
-      <Text style={[card.price, { fontSize: 12, color: C.textSecondary }]}>{skin.badge_status || ''}</Text>
-      <TouchableOpacity style={card.buyBtn} activeOpacity={0.75}>
-        <Text style={card.buyText}>View</Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-);
 
 const card = StyleSheet.create({
   wrapper: {
@@ -112,10 +90,15 @@ const card = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 6,
+    overflow: 'hidden',
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
   } as ViewStyle,
   image: {
     width: "100%",
     height: "100%",
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
   } as ImageStyle,
   info: {
     flex: 1,
@@ -173,6 +156,60 @@ const card = StyleSheet.create({
     fontWeight: "700",
   } as TextStyle,
 });
+
+const SkinCard = ({ skin }: { skin: any }) => {
+  const imgUri = skin._image_url || skin.image_url;
+  const [imgError, setImgError] = useState(false);
+  const tagBg = skin.tagBg || C.tagBg;
+  const tagText = skin.tagText || C.tagText;
+
+  return (
+    <View style={card.wrapper}>
+      {/* Product Image */}
+      {imgUri && !imgError ? (
+        <View style={[card.imageBox, { backgroundColor: '#140606' }]}>
+          <Image
+            source={{ uri: imgUri }}
+            style={card.image}
+            resizeMode="cover"
+            onError={() => setImgError(true)}
+          />
+        </View>
+      ) : (
+        <View style={[card.imageBox, { backgroundColor: '#1a0a0d', justifyContent: 'center' }]}>
+          <Text style={{ color: '#ff6b77', fontWeight: '700' }}>No image</Text>
+        </View>
+      )}
+
+      {/* Info */}
+      <View style={card.info}>
+        <Text style={card.name} numberOfLines={1}>
+          {skin.name}
+        </Text>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 }}>
+          <View style={[card.typePill, { backgroundColor: tagBg }]}>
+            <Text style={[card.typeText, { color: tagText }]}>{skin.type || skin.category}</Text>
+          </View>
+          <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary }]}>VP: {skin.vp?.toLocaleString?.() ?? skin.vp}</Text>
+          <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary }]}>฿{skin.price?.toLocaleString?.() ?? skin.price}</Text>
+        </View>
+
+        <View style={{ marginTop: 8 }}>
+          <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary }]}>Type: {skin.type || '-'}</Text>
+        </View>
+      </View>
+
+      {/* Action / Badge */}
+      <View style={card.priceBox}>
+        <Text style={[card.price, { fontSize: 12, color: C.textSecondary }]}>{skin.badge_status || ''}</Text>
+        <TouchableOpacity style={card.buyBtn} activeOpacity={0.75}>
+          <Text style={card.buyText}>View</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
 
 const OverviewCard = ({
   icon,
@@ -234,9 +271,13 @@ export default function OwenShopHome() {
       })
       .then((data) => {
         if (!mounted) return;
-        if (Array.isArray(data)) setSkins(data);
-        else if (data && Array.isArray((data as any).products)) setSkins((data as any).products);
-        else setError('Invalid product data');
+        const list = Array.isArray(data) ? data : data && Array.isArray((data as any).products) ? (data as any).products : null;
+        if (!list) {
+          setError('Invalid product data');
+          return;
+        }
+        const normalized = list.map((s: any) => ({ ...s, _image_url: normalizeImageUrl(s.image_url) }));
+        setSkins(normalized);
       })
       .catch((e: any) => {
         if (!mounted) return;
