@@ -8,7 +8,7 @@
         "tagColor": "#6c3ccf",
         "tagBg": "#2a1a4a",
         "tagText": "#c084fc",
-        "image_url":"https://media.dexerto.com/media/valorant-chroma-phaseguard-vandal-level-4-variant-1-blue-full.png"
+        "image_url":"https://github.com/BenyapaTangwai/Inventory_App/blob/main/image_Product/Phaseguard_Vandal.webp"
     },
     {
         "id": 2,
@@ -19,7 +19,7 @@
         "tagColor": "#6c3ccf",
         "tagBg": "#2a1a4a",
         "tagText": "#c084fc",
-        "image_url":"https://valorant.fandom.com/wiki/CYRAX_Collection?file=CYRAX_Vandal.png"
+        "image_url":"https://github.com/BenyapaTangwai/Inventory_App/blob/main/image_Product/CYRAX_Vandal.webp"
     },
     {
         "id": 3,
@@ -30,6 +30,6 @@
         "tagColor": "#6c3ccf",
         "tagBg": "#2a1a4a",
         "tagText": "#c084fc",
-        "image_url":"https://valorant.fandom.com/wiki/Reaver_Collection?file=Reaver_Vandal.png"
-    }
+            "image_url":"https://github.com/BenyapaTangwai/Inventory_App/blob/main/image_Product/Reaver_Vandal.webp"
+        }
 ]
