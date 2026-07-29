@@ -32,11 +32,16 @@ const C = {
   navInactive: "#666666",
 };
 
-const PRODUCTS_URL = 'https://raw.githubusercontent.com/BenyapaTangwai/Inventory_App/main/products.json';
+// API URL to use cloud server
+const API_BASE_URL = 'http://119.59.102.161:3027/api';
 
 function normalizeImageUrl(url: string | undefined) {
   if (!url) return undefined;
   try {
+    // กรณีที่รูปถูกเก็บไว้ใน server ตัวเอง
+    if (url.startsWith('/uploads/') || url.startsWith('/images/')) {
+      return `${API_BASE_URL}${url}`;
+    }
     // convert GitHub blob urls to raw.githubusercontent URLs
     if (url.includes('github.com') && url.includes('/blob/')) {
       return url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/');
@@ -71,26 +76,23 @@ const vpStyles = StyleSheet.create({
   } as TextStyle,
 });
 
-
-
 const card = StyleSheet.create({
   wrapper: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: C.surface,
     borderRadius: 12,
-    borderWidth: 5,
+    borderWidth: 1,
     borderColor: C.border,
     overflow: "hidden",
-    marginBottom: 9,
+    marginBottom: 12,
   } as ViewStyle,
   imageBox: {
-    width: 150,
+    width: 130,
     height: 100,
     justifyContent: "center",
     alignItems: "center",
-    padding: 1,
-    paddingLeft: 12,
+    padding: 6,
     overflow: 'hidden',
     borderTopLeftRadius: 12,
     borderBottomLeftRadius: 12,
@@ -104,11 +106,10 @@ const card = StyleSheet.create({
     overflow: 'hidden',
   } as ViewStyle,
   image: {
-    width: "90%",
-    height: "90%",
+    width: "100%",
+    height: "100%",
     alignSelf: 'center',
     borderRadius: 8,
-    marginLeft: 4,
   } as ImageStyle,
   info: {
     flex: 1,
@@ -118,7 +119,7 @@ const card = StyleSheet.create({
     justifyContent: "center",
   } as ViewStyle,
   name: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "700",
     color: C.textPrimary,
   } as TextStyle,
@@ -157,7 +158,7 @@ const card = StyleSheet.create({
   buyBtn: {
     backgroundColor: C.accent,
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 6,
   } as ViewStyle,
   buyText: {
@@ -168,10 +169,15 @@ const card = StyleSheet.create({
 });
 
 const SkinCard = ({ skin }: { skin: any }) => {
-  const imgUri = skin._image_url || skin.image_url;
+  const imgUri = skin._image_url || normalizeImageUrl(skin.image_url || skin.image);
   const [imgError, setImgError] = useState(false);
   const tagBg = skin.tagBg || C.tagBg;
   const tagText = skin.tagText || C.tagText;
+  const skinName = skin.name || skin.title || 'Unknown Skin';
+  const skinCategory = skin.category_name || skin.type || skin.category || 'Skin';
+  const vpPrice = skin.vp_price ?? skin.vp ?? 0;
+  const thbPrice = skin.price_thb ?? skin.price ?? 0;
+  const badgeText = skin.badge || skin.badge_status || '';
 
   return (
     <View style={card.wrapper}>
@@ -190,7 +196,7 @@ const SkinCard = ({ skin }: { skin: any }) => {
       ) : (
         <View style={card.imageBox}>
           <View style={[card.imageInner, { backgroundColor: '#1a0a0d', justifyContent: 'center' }]}>
-            <Text style={{ color: '#ff6b77', fontWeight: '700' }}>No image</Text>
+            <Text style={{ color: '#ff6b77', fontWeight: '700', fontSize: 11 }}>No Image</Text>
           </View>
         </View>
       )}
@@ -198,24 +204,28 @@ const SkinCard = ({ skin }: { skin: any }) => {
       {/* Info */}
       <View style={card.info}>
         <Text style={card.name} numberOfLines={1}>
-          {skin.name}
+          {skinName}
         </Text>
 
-        <View style={{ marginTop: 6 }}>
-          <View style={[card.typePill, { backgroundColor: tagBg, marginBottom: 6 }]}>
-            <Text style={[card.typeText, { color: tagText }]}>{skin.type || skin.category}</Text>
+        <View style={{ marginTop: 4 }}>
+          <View style={[card.typePill, { backgroundColor: tagBg, marginBottom: 4 }]}>
+            <Text style={[card.typeText, { color: tagText }]}>{skinCategory}</Text>
           </View>
 
-          <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary, marginBottom: 4 }]}>VP: {skin.vp?.toLocaleString?.() ?? skin.vp}</Text>
-          <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary, marginBottom: 6 }]}>฿{skin.price?.toLocaleString?.() ?? skin.price}</Text>
-
-          <Text style={[card.vpText, { fontSize: 12, color: C.textSecondary }]}>Type: {skin.type || '-'}</Text>
+          <Text style={[card.vpText, { fontSize: 11, color: C.textSecondary, marginBottom: 2 }]}>
+            VP: {vpPrice ? vpPrice.toLocaleString() : '0'}
+          </Text>
+          <Text style={[card.vpText, { fontSize: 11, color: C.accent, fontWeight: '700' }]}>
+            ฿{thbPrice ? thbPrice.toLocaleString() : '0'}
+          </Text>
         </View>
       </View>
 
       {/* Action / Badge */}
       <View style={card.priceBox}>
-        <Text style={[card.price, { fontSize: 12, color: C.textSecondary }]}>{skin.badge_status || ''}</Text>
+        {badgeText ? (
+          <Text style={[card.price, { fontSize: 11, color: C.textSecondary }]}>{badgeText}</Text>
+        ) : null}
         <TouchableOpacity style={card.buyBtn} activeOpacity={0.75}>
           <Text style={card.buyText}>View</Text>
         </TouchableOpacity>
@@ -268,41 +278,77 @@ const ov = StyleSheet.create({
   } as TextStyle,
 });
 
+// Enhanced API Call Function with better error handling for cloud
+const apiCall = async (endpoint: string, options: any = {}) => {
+  const config = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...options.headers,
+    },
+  };
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+  if (!response.ok) throw new Error(`HTTP ${response.status}: ไม่สามารถดึงข้อมูลได้`);
+  return response.json();
+};
+
 export default function OwenShopHome() {
   const [activeTab, setActiveTab] = useState<"Home" | "Add" | "Products" | "Categories">("Home");
+  const [currentScreen, setCurrentScreen] = useState<string>('dashboard');
+  const [authToken] = useState<string | null>(null); // ตั้ง token ตรงนี้ถ้ามี login
   const [skins, setSkins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // This is a function that "retrieves products" directly from the API.
+  // It calls /products via the apiCall() method declared above.
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const data = await apiCall('/products');
+
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid data format received');
+      }
+
+      const parsedData = data.map((product: any) => ({
+        ...product,
+        storeAvailability: typeof product.storeAvailability === 'string'
+          ? JSON.parse(product.storeAvailability || '[]')
+          : product.storeAvailability || [],
+        _image_url: normalizeImageUrl(product.image_url || product.image),
+      }));
+
+      setSkins(parsedData);
+      console.log(`Loaded ${parsedData.length} products`);
+    } catch (err: any) {
+      console.error('Fetch products error:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // When you login and go to the Products screen → fetch products
   useEffect(() => {
-    let mounted = true;
-    setLoading(true);
-    fetch(PRODUCTS_URL)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (!mounted) return;
-        const list = Array.isArray(data) ? data : data && Array.isArray((data as any).products) ? (data as any).products : null;
-        if (!list) {
-          setError('Invalid product data');
-          return;
-        }
-        const normalized = list.map((s: any) => ({ ...s, _image_url: normalizeImageUrl(s.image_url) }));
-        setSkins(normalized);
-      })
-      .catch((e: any) => {
-        if (!mounted) return;
-        setError(String(e?.message ?? e));
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
+    if (authToken && currentScreen === 'products') {
+      fetchProducts();
+    }
+  }, [authToken, currentScreen]);
+
+  // Auto-fetch products when accessing dashboard
+  useEffect(() => {
+    if (authToken && currentScreen === 'dashboard' && skins.length === 0) {
+      fetchProducts();
+    }
+  }, [authToken, currentScreen]);
+
+  // If you don't have login function you can just use this
+  useEffect(() => {
+    fetchProducts();
   }, []);
 
   return (
@@ -342,14 +388,14 @@ export default function OwenShopHome() {
         {/* Overview */}
         <Text style={styles.sectionTitle}>Overview</Text>
         <View style={styles.overviewRow}>
-          <OverviewCard icon="🎮" value={156} label="Total Skins" accent="#ff4655" />
+          <OverviewCard icon="🎮" value={skins.length || 0} label="Total Skins" accent="#ff4655" />
           <OverviewCard icon="🛒" value={34} label="New Orders" accent="#4fc3f7" />
           <OverviewCard icon="⚠️" value={2} label="Low Stock" accent="#f97316" />
         </View>
 
         {/* Trending Section */}
         <View style={styles.trendingHeader}>
-          <Text style={styles.sectionTitle}>Trending</Text>
+          <Text style={styles.sectionTitle}>Products ({skins.length})</Text>
           <TouchableOpacity activeOpacity={0.6}>
             <Text style={styles.seeAll}>See all</Text>
           </TouchableOpacity>
@@ -358,11 +404,15 @@ export default function OwenShopHome() {
         {/* Skin Cards */}
         <View style={styles.skinList}>
           {loading ? (
-            <Text style={styles.shopSub}>Loading...</Text>
+            <Text style={styles.loadingText}>กำลังโหลดข้อมูลจาก API...</Text>
           ) : error ? (
-            <Text style={styles.shopSub}>{error}</Text>
+            <Text style={styles.errorText}>{error}</Text>
+          ) : skins.length === 0 ? (
+            <Text style={styles.loadingText}>ไม่พบรายการสินค้า</Text>
           ) : (
-            skins.map((skin) => <SkinCard key={skin.id} skin={skin} />)
+            skins.map((skin, index) => (
+              <SkinCard key={skin.id || skin._id || index} skin={skin} />
+            ))
           )}
         </View>
       </ScrollView>
@@ -514,6 +564,16 @@ const styles = StyleSheet.create({
   skinList: {
     gap: 0,
   } as ViewStyle,
+  loadingText: {
+    color: C.textSecondary,
+    textAlign: "center",
+    marginVertical: 20,
+  } as TextStyle,
+  errorText: {
+    color: C.accent,
+    textAlign: "center",
+    marginVertical: 20,
+  } as TextStyle,
 
   // Bottom Nav
   bottomNav: {
