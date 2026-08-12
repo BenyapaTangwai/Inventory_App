@@ -9,9 +9,22 @@ import {
   Text,
   TextStyle,
   TouchableOpacity,
+  useWindowDimensions,
   View,
   ViewStyle,
 } from "react-native";
+import {
+  AddIcon,
+  AlertIcon,
+  CartIcon,
+  CategoriesIcon,
+  GamepadIcon,
+  HomeIcon,
+  ProductsIcon,
+} from "@/components/tab-icons";
+import AddProductScreen from "@/components/add-product-screen";
+import EditProductScreen from "@/components/edit-product-screen";
+import ProductsScreen from "@/components/products-screen";
 
 const C = {
   bg: "#0a0a0a",
@@ -32,7 +45,7 @@ const C = {
   navInactive: "#666666",
 };
 
-// API URL to use cloud server
+// API URL to use remote server
 const API_BASE_URL = 'http://119.59.102.161:3027/api';
 
 function normalizeImageUrl(url: string | undefined) {
@@ -78,157 +91,167 @@ const vpStyles = StyleSheet.create({
 
 const card = StyleSheet.create({
   wrapper: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: C.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: C.border,
-    overflow: "hidden",
-    marginBottom: 12,
+    padding: 14,
+    marginBottom: 16,
+    gap: 10,
   } as ViewStyle,
-  imageBox: {
-    width: 130,
-    height: 100,
+  imageArea: {
+    width: "100%",
+    height: 165,
+    backgroundColor: "#0c0507",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#1e0b0e",
     justifyContent: "center",
     alignItems: "center",
-    padding: 6,
-    overflow: 'hidden',
-    borderTopLeftRadius: 12,
-    borderBottomLeftRadius: 12,
-  } as ViewStyle,
-  imageInner: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    position: "relative",
+    overflow: "hidden",
   } as ViewStyle,
   image: {
-    width: "100%",
-    height: "100%",
-    alignSelf: 'center',
-    borderRadius: 8,
+    width: "92%",
+    height: "92%",
   } as ImageStyle,
-  info: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 4,
+  noImgInner: {
     justifyContent: "center",
+    alignItems: "center",
   } as ViewStyle,
-  name: {
-    fontSize: 14,
+  badgeOverlay: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    backgroundColor: "#052e16",
+    borderColor: "#14532d",
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 16,
+  } as ViewStyle,
+  badgeText: {
+    color: "#22c55e",
+    fontSize: 10,
     fontWeight: "700",
-    color: C.textPrimary,
   } as TextStyle,
+  infoTagsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 2,
+  } as ViewStyle,
   typePill: {
-    alignSelf: "flex-start",
+    backgroundColor: "#1e1e1e",
+    borderRadius: 6,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    paddingVertical: 3,
   } as ViewStyle,
   typeText: {
     fontSize: 10,
     fontWeight: "600",
+    color: C.textSecondary,
   } as TextStyle,
-  vpRow: {
+  bottomRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginTop: 2,
-  } as ViewStyle,
-  vpText: {
-    fontSize: 11,
-    color: "#4fc3f7",
-    fontWeight: "600",
-  } as TextStyle,
-  priceBox: {
-    paddingRight: 12,
+    justifyContent: "space-between",
     alignItems: "flex-end",
-    gap: 6,
-    justifyContent: "center",
+    paddingTop: 4,
   } as ViewStyle,
-  price: {
-    fontSize: 15,
+  nameBoxLeft: {
+    flex: 1,
+    marginRight: 12,
+  } as ViewStyle,
+  name: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: C.textPrimary,
+    letterSpacing: 0.3,
+    lineHeight: 22,
+  } as TextStyle,
+  priceBoxRight: {
+    alignItems: "flex-end",
+    gap: 2,
+  } as ViewStyle,
+  vpTextSmall: {
+    fontSize: 13,
     fontWeight: "700",
     color: C.accent,
   } as TextStyle,
-  buyBtn: {
-    backgroundColor: C.accent,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  } as ViewStyle,
-  buyText: {
-    color: "#fff",
-    fontSize: 12,
+  vpUnitText: {
+    fontSize: 11,
     fontWeight: "700",
+    color: C.textSecondary,
+  } as TextStyle,
+  thbTextLarge: {
+    fontSize: 18,
+    fontWeight: "900",
+    color: "#4fc3f7",
+    letterSpacing: 0.5,
   } as TextStyle,
 });
 
 const SkinCard = ({ skin }: { skin: any }) => {
   const imgUri = skin._image_url || normalizeImageUrl(skin.image_url || skin.image);
   const [imgError, setImgError] = useState(false);
-  const tagBg = skin.tagBg || C.tagBg;
-  const tagText = skin.tagText || C.tagText;
   const skinName = skin.name || skin.title || 'Unknown Skin';
   const skinCategory = skin.category_name || skin.type || skin.category || 'Skin';
   const vpPrice = skin.vp_price ?? skin.vp ?? 0;
   const thbPrice = skin.price_thb ?? skin.price ?? 0;
-  const badgeText = skin.badge || skin.badge_status || '';
+  const badgeText = skin.badge || skin.badge_status || 'Active';
 
   return (
     <View style={card.wrapper}>
-      {/* Product Image */}
-      {imgUri && !imgError ? (
-        <View style={card.imageBox}>
-          <View style={[card.imageInner, { backgroundColor: '#140606' }]}>
-            <Image
-              source={{ uri: imgUri }}
-              style={card.image}
-              resizeMode="contain"
-              onError={() => setImgError(true)}
-            />
+      {/* 1. Large Banner Image Box */}
+      <View style={card.imageArea}>
+        {imgUri && !imgError ? (
+          <Image
+            source={{ uri: imgUri }}
+            style={card.image}
+            resizeMode="contain"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <View style={card.noImgInner}>
+            <Text style={{ color: C.accent, fontWeight: '700', fontSize: 12 }}>No Image</Text>
           </View>
-        </View>
-      ) : (
-        <View style={card.imageBox}>
-          <View style={[card.imageInner, { backgroundColor: '#1a0a0d', justifyContent: 'center' }]}>
-            <Text style={{ color: '#ff6b77', fontWeight: '700', fontSize: 11 }}>No Image</Text>
-          </View>
-        </View>
-      )}
+        )}
 
-      {/* Info */}
-      <View style={card.info}>
-        <Text style={card.name} numberOfLines={1}>
-          {skinName}
-        </Text>
-
-        <View style={{ marginTop: 4 }}>
-          <View style={[card.typePill, { backgroundColor: tagBg, marginBottom: 4 }]}>
-            <Text style={[card.typeText, { color: tagText }]}>{skinCategory}</Text>
-          </View>
-
-          <Text style={[card.vpText, { fontSize: 11, color: C.textSecondary, marginBottom: 2 }]}>
-            VP: {vpPrice ? vpPrice.toLocaleString() : '0'}
-          </Text>
-          <Text style={[card.vpText, { fontSize: 11, color: C.accent, fontWeight: '700' }]}>
-            ฿{thbPrice ? thbPrice.toLocaleString() : '0'}
-          </Text>
+        {/* Status Overlay Badge at Top-Right */}
+        <View style={card.badgeOverlay}>
+          <Text style={card.badgeText}>{badgeText}</Text>
         </View>
       </View>
 
-      {/* Action / Badge */}
-      <View style={card.priceBox}>
-        {badgeText ? (
-          <Text style={[card.price, { fontSize: 11, color: C.textSecondary }]}>{badgeText}</Text>
-        ) : null}
-        <TouchableOpacity style={card.buyBtn} activeOpacity={0.75}>
-          <Text style={card.buyText}>View</Text>
-        </TouchableOpacity>
+      {/* 2. Middle Tags Row */}
+      <View style={card.infoTagsRow}>
+        <View style={card.typePill}>
+          <Text style={card.typeText}>{skinCategory}</Text>
+        </View>
+        <View style={[card.typePill, { backgroundColor: '#2a0a0e' }]}>
+          <Text style={[card.typeText, { color: '#ff6b77' }]}>Stock: {skin.stock ?? 12}</Text>
+        </View>
+      </View>
+
+      {/* 3. Bottom Row: Name on Left, VP & Price (THB) on Right */}
+      <View style={card.bottomRow}>
+        {/* Left Side: Product Name */}
+        <View style={card.nameBoxLeft}>
+          <Text style={card.name} numberOfLines={2}>
+            {skinName}
+          </Text>
+        </View>
+
+        {/* Right Side: VP Points & THB Price */}
+        <View style={card.priceBoxRight}>
+          <Text style={card.thbTextLarge}>
+            ฿{thbPrice ? thbPrice.toLocaleString() : '625'}
+          </Text>
+          <Text style={card.vpTextSmall}>
+            {vpPrice ? vpPrice.toLocaleString() : '2,175'}{' '}
+            <Text style={card.vpUnitText}>VP</Text>
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -240,13 +263,13 @@ const OverviewCard = ({
   label,
   accent,
 }: {
-  icon: string;
+  icon: React.ReactNode;
   value: string | number;
   label: string;
   accent: string;
 }) => (
   <View style={[ov.card, { borderTopColor: accent }]}>
-    <Text style={ov.icon}>{icon}</Text>
+    <View style={ov.iconContainer}>{icon}</View>
     <Text style={[ov.value, { color: accent }]}>{value}</Text>
     <Text style={ov.label}>{label}</Text>
   </View>
@@ -264,9 +287,11 @@ const ov = StyleSheet.create({
     alignItems: "center",
     gap: 4,
   } as ViewStyle,
-  icon: {
-    fontSize: 20,
-  } as TextStyle,
+  iconContainer: {
+    height: 28,
+    justifyContent: "center",
+    alignItems: "center",
+  } as ViewStyle,
   value: {
     fontSize: 22,
     fontWeight: "800",
@@ -294,12 +319,18 @@ const apiCall = async (endpoint: string, options: any = {}) => {
 };
 
 export default function OwenShopHome() {
-  const [activeTab, setActiveTab] = useState<"Home" | "Add" | "Products" | "Categories">("Home");
+  const [activeTab, setActiveTab] = useState<"Home" | "Add" | "Products" | "Categories" | "Edit">("Home");
   const [currentScreen, setCurrentScreen] = useState<string>('dashboard');
   const [authToken] = useState<string | null>(null); // ตั้ง token ตรงนี้ถ้ามี login
   const [skins, setSkins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+
+  const { width: windowWidth } = useWindowDimensions();
+  const isDesktop = windowWidth >= 1024;
+  const isTablet = windowWidth >= 640 && windowWidth < 1024;
+  const cardWidth = isDesktop ? "32.2%" : isTablet ? "48.8%" : "100%";
 
   // This is a function that "retrieves products" directly from the API.
   // It calls /products via the apiCall() method declared above.
@@ -346,6 +377,56 @@ export default function OwenShopHome() {
     }
   }, [authToken, currentScreen]);
 
+  // Add product handler
+  const handleAddProduct = async (newProduct: any) => {
+    try {
+      try {
+        await apiCall('/products', {
+          method: 'POST',
+          body: JSON.stringify(newProduct),
+        });
+      } catch (e) {
+        console.warn('API POST skipped or failed, updating local state:', e);
+      }
+
+      const createdItem = {
+        id: Date.now(),
+        ...newProduct,
+        _image_url: newProduct.image_url,
+      };
+
+      setSkins((prev) => [createdItem, ...prev]);
+    } catch (err: any) {
+      console.error('handleAddProduct error:', err);
+      throw err;
+    }
+  };
+
+  // Edit product handler
+  const handleEditProduct = async (id: number | string, updatedProduct: any) => {
+    try {
+      try {
+        await apiCall(`/products/${id}`, {
+          method: 'PUT',
+          body: JSON.stringify(updatedProduct),
+        });
+      } catch (e) {
+        console.warn('API PUT skipped or failed, updating local state:', e);
+      }
+
+      setSkins((prev) => 
+        prev.map(skin => 
+          (skin.id === id || skin._id === id) 
+            ? { ...skin, ...updatedProduct, _image_url: updatedProduct.image_url } 
+            : skin
+        )
+      );
+    } catch (err: any) {
+      console.error('handleEditProduct error:', err);
+      throw err;
+    }
+  };
+
   // If you don't have login function you can just use this
   useEffect(() => {
     fetchProducts();
@@ -379,30 +460,72 @@ export default function OwenShopHome() {
       {/* ── Divider ── */}
       <View style={styles.divider} />
 
-      {/* ── Scrollable Content ── */}
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Overview */}
-        <Text style={styles.sectionTitle}>Overview</Text>
-        <View style={styles.overviewRow}>
-          <OverviewCard icon="🎮" value={skins.length || 0} label="Total Skins" accent="#ff4655" />
-          <OverviewCard icon="🛒" value={34} label="New Orders" accent="#4fc3f7" />
-          <OverviewCard icon="⚠️" value={2} label="Low Stock" accent="#f97316" />
-        </View>
+      {/* ── Dynamic Tab Content ── */}
+      {activeTab === "Add" ? (
+        <AddProductScreen
+          onBack={() => setActiveTab("Home")}
+          onAddProduct={handleAddProduct}
+        />
+      ) : activeTab === "Edit" && editingProduct ? (
+        <EditProductScreen
+          onBack={() => setActiveTab("Products")}
+          onEditProduct={handleEditProduct}
+          initialData={editingProduct}
+        />
+      ) : activeTab === "Products" ? (
+        <ProductsScreen
+          skins={skins}
+          loading={loading}
+          error={error}
+          onRefresh={fetchProducts}
+          onGoToAdd={() => setActiveTab("Add")}
+          onEditProduct={(product) => {
+            setEditingProduct(product);
+            setActiveTab("Edit");
+          }}
+        />
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Overview */}
+          <Text style={styles.sectionTitle}>Overview</Text>
+          <View style={styles.overviewRow}>
+            <OverviewCard
+              icon={<GamepadIcon color="#ff4655" size={26} />}
+              value={skins.length || 0}
+              label="Total Skins"
+              accent="#ff4655"
+            />
+            <OverviewCard
+              icon={<CartIcon color="#4fc3f7" size={26} />}
+              value={12}
+              label="New Orders"
+              accent="#4fc3f7"
+            />
+            <OverviewCard
+              icon={<AlertIcon color="#f97316" size={26} />}
+              value={skins.filter(s => s.stock != null && Number(s.stock) < 5).length}
+              label="Low Stock"
+              accent="#f97316"
+            />
+          </View>
 
-        {/* Trending Section */}
-        <View style={styles.trendingHeader}>
-          <Text style={styles.sectionTitle}>Products ({skins.length})</Text>
-          <TouchableOpacity activeOpacity={0.6}>
-            <Text style={styles.seeAll}>See all</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Trending Section */}
+          <View style={styles.trendingHeader}>
+            <Text style={styles.sectionTitle}>
+              {activeTab === "Categories" ? "Categories" : `Products (${skins.length})`}
+            </Text>
+            {activeTab === "Home" && (
+              <TouchableOpacity activeOpacity={0.6} onPress={() => setActiveTab("Products")}>
+                <Text style={styles.seeAll}>See all</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-        {/* Skin Cards */}
-        <View style={styles.skinList}>
+          {/* Skin Cards */}
           {loading ? (
             <Text style={styles.loadingText}>กำลังโหลดข้อมูลจาก API...</Text>
           ) : error ? (
@@ -410,23 +533,31 @@ export default function OwenShopHome() {
           ) : skins.length === 0 ? (
             <Text style={styles.loadingText}>ไม่พบรายการสินค้า</Text>
           ) : (
-            skins.map((skin, index) => (
-              <SkinCard key={skin.id || skin._id || index} skin={skin} />
-            ))
+            <View style={styles.skinListGrid}>
+              {skins.map((skin, index) => (
+                <View key={skin.id || skin._id || index} style={{ width: cardWidth as any }}>
+                  <SkinCard skin={skin} />
+                </View>
+              ))}
+            </View>
           )}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      )}
 
       {/* ── Bottom Navigation ── */}
       <View style={styles.bottomNav}>
         {(["Home", "Add", "Products", "Categories"] as const).map((tab) => {
           const isActive = activeTab === tab;
-          const icons: Record<string, string> = {
-            Home: "🏠",
-            Add: "➕",
-            Products: "📦",
-            Categories: "🏷️",
+          const iconColor = isActive ? C.navActive : C.navInactive;
+
+          const IconComponent = () => {
+            if (tab === "Home") return <HomeIcon color={iconColor} size={26} />;
+            if (tab === "Add") return <AddIcon color={iconColor} size={26} />;
+            if (tab === "Products") return <ProductsIcon color={iconColor} size={26} />;
+            if (tab === "Categories") return <CategoriesIcon color={iconColor} size={26} />;
+            return null;
           };
+
           return (
             <TouchableOpacity
               key={tab}
@@ -441,15 +572,7 @@ export default function OwenShopHome() {
                   tab === "Add" && isActive && styles.navAddCircleActive,
                 ]}
               >
-                <Text
-                  style={[
-                    styles.navIcon,
-                    { color: isActive ? C.navActive : C.navInactive },
-                    tab === "Add" && styles.navAddIcon,
-                  ]}
-                >
-                  {icons[tab]}
-                </Text>
+                <IconComponent />
               </View>
               <Text
                 style={[
@@ -530,6 +653,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 80, // clear bottom nav
+    maxWidth: 1200,
+    width: "100%",
+    alignSelf: "center",
   } as ViewStyle,
 
   // Section titles
@@ -563,6 +689,12 @@ const styles = StyleSheet.create({
   // Skin list
   skinList: {
     gap: 0,
+  } as ViewStyle,
+  skinListGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 16,
+    width: "100%",
   } as ViewStyle,
   loadingText: {
     color: C.textSecondary,
@@ -610,12 +742,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#2a0a0e",
     borderColor: C.accent,
   } as ViewStyle,
-  navIcon: {
-    fontSize: 18,
-  } as TextStyle,
-  navAddIcon: {
-    fontSize: 16,
-  } as TextStyle,
   navLabel: {
     fontSize: 10,
     fontWeight: "600",
