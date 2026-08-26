@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   Image,
   ImageStyle,
+  Modal,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -18,44 +19,68 @@ import {
   AlertIcon,
   CartIcon,
   CategoriesIcon,
+  CloseIcon,
   GamepadIcon,
   HomeIcon,
+  MenuIcon,
   ProductsIcon,
+  ProfileIcon,
 } from "@/components/tab-icons";
 import AddProductScreen from "@/components/add-product-screen";
 import EditProductScreen from "@/components/edit-product-screen";
 import ProductsScreen from "@/components/products-screen";
+import AuthScreen from "@/components/auth-screen";
+import SettingsScreen from "@/components/settings-screen";
+import FinancesScreen from "@/components/finances-screen";
+import { ThemeProvider, useAppTheme } from "@/theme/theme-context";
+import defaultProducts from "../../products.json";
 
-const C = {
+const DARK_C = {
   bg: "#0a0a0a",
   surface: "#151515",
+  surfaceCard: "#1a1a1a",
   border: "#222222",
   accent: "#ff4655",
   accentDim: "#cc2233",
   textPrimary: "#ffffff",
   textSecondary: "#aaaaaa",
   textMuted: "#666666",
-  cardBg: "#1a1a1a",
-  tagBg: "#2a0a0e",
-  tagText: "#ff6b77",
-  vpBg: "#0d1a2a",
-  vpText: "#4fc3f7",
   navBg: "#111111",
   navActive: "#ff4655",
   navInactive: "#666666",
+  imageFrameBg: "#0c0507",
+  imageFrameBorder: "#1e0b0e",
+  chipBg: "#1e1e1e",
+  priceBlue: "#4fc3f7",
 };
 
-// API URL to use remote server
-const API_BASE_URL = 'http://119.59.102.161:3027/api';
+const LIGHT_C = {
+  bg: "#f2f2f5",
+  surface: "#ffffff",
+  surfaceCard: "#f5f5f7",
+  border: "#e2e2e6",
+  accent: "#ff4655",
+  accentDim: "#cc2233",
+  textPrimary: "#111111",
+  textSecondary: "#5c5c66",
+  textMuted: "#8a8a94",
+  navBg: "#ffffff",
+  navActive: "#ff4655",
+  navInactive: "#9a9aa4",
+  imageFrameBg: "#f4f0ef",
+  imageFrameBorder: "#eadfdd",
+  chipBg: "#eef0f3",
+  priceBlue: "#0284c7",
+};
+
+type Palette = typeof DARK_C;
 
 function normalizeImageUrl(url: string | undefined) {
   if (!url) return undefined;
   try {
-    // กรณีที่รูปถูกเก็บไว้ใน server ตัวเอง
     if (url.startsWith('/uploads/') || url.startsWith('/images/')) {
-      return `${API_BASE_URL}${url}`;
+      return `http://119.59.102.161:3027/api${url}`;
     }
-    // convert GitHub blob urls to raw.githubusercontent URLs
     if (url.includes('github.com') && url.includes('/blob/')) {
       return url.replace('https://github.com/', 'https://raw.githubusercontent.com/').replace('/blob/', '/');
     }
@@ -65,31 +90,49 @@ function normalizeImageUrl(url: string | undefined) {
   }
 }
 
-const VPIcon = () => (
-  <View style={vpStyles.diamond}>
-    <Text style={vpStyles.text}>VP</Text>
-  </View>
-);
+// API URLs for teacher's remote server and local fallback
+const API_ENDPOINTS = ['http://119.59.102.161:3027/api', 'http://localhost:3027/api'];
 
-const vpStyles = StyleSheet.create({
-  diamond: {
-    width: 18,
-    height: 18,
-    backgroundColor: "#4fc3f7",
-    borderRadius: 3,
-    justifyContent: "center",
-    alignItems: "center",
-    transform: [{ rotate: "45deg" }],
-  } as ViewStyle,
-  text: {
-    fontSize: 6,
-    fontWeight: "700",
-    color: "#0a1a2a",
-    transform: [{ rotate: "-45deg" }],
-  } as TextStyle,
-});
+const apiCall = async (endpoint: string, options: any = {}, role: string = 'admin') => {
+  let lastErr: any = null;
+  for (const baseUrl of API_ENDPOINTS) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    let response: Response;
+    try {
+      const config = {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'x-user-role': role,
+          ...options.headers,
+        },
+      };
+      response = await fetch(`${baseUrl}${endpoint}`, config);
+    } catch (e: any) {
+      // Endpoint itself was unreachable (network/timeout) — worth trying the next one.
+      clearTimeout(timer);
+      lastErr = e;
+      continue;
+    }
+    clearTimeout(timer);
+    // We got a response from this endpoint
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) {
+      return data;
+    }
+    if (response.status >= 500) {
+      lastErr = new Error(data.error || `HTTP Error ${response.status}`);
+      continue;
+    }
+    throw new Error(data.error || `HTTP Error ${response.status}`);
+  }
+  throw lastErr || new Error('Unable to connect to API server');
+};
 
-const card = StyleSheet.create({
+const buildCardStyles = (C: Palette) => StyleSheet.create({
   wrapper: {
     backgroundColor: C.surface,
     borderRadius: 16,
@@ -102,10 +145,10 @@ const card = StyleSheet.create({
   imageArea: {
     width: "100%",
     height: 165,
-    backgroundColor: "#0c0507",
+    backgroundColor: C.imageFrameBg,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#1e0b0e",
+    borderColor: C.imageFrameBorder,
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
@@ -142,7 +185,7 @@ const card = StyleSheet.create({
     marginTop: 2,
   } as ViewStyle,
   typePill: {
-    backgroundColor: "#1e1e1e",
+    backgroundColor: C.chipBg,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -186,12 +229,15 @@ const card = StyleSheet.create({
   thbTextLarge: {
     fontSize: 18,
     fontWeight: "900",
-    color: "#4fc3f7",
+    color: C.priceBlue,
     letterSpacing: 0.5,
   } as TextStyle,
 });
 
-const SkinCard = ({ skin }: { skin: any }) => {
+const cardStylesByMode = { dark: buildCardStyles(DARK_C), light: buildCardStyles(LIGHT_C) };
+
+const SkinCard = ({ skin, C }: { skin: any; C: Palette }) => {
+  const card = C === DARK_C ? cardStylesByMode.dark : cardStylesByMode.light;
   const imgUri = skin._image_url || normalizeImageUrl(skin.image_url || skin.image);
   const [imgError, setImgError] = useState(false);
   const skinName = skin.name || skin.title || 'Unknown Skin';
@@ -257,25 +303,7 @@ const SkinCard = ({ skin }: { skin: any }) => {
   );
 };
 
-const OverviewCard = ({
-  icon,
-  value,
-  label,
-  accent,
-}: {
-  icon: React.ReactNode;
-  value: string | number;
-  label: string;
-  accent: string;
-}) => (
-  <View style={[ov.card, { borderTopColor: accent }]}>
-    <View style={ov.iconContainer}>{icon}</View>
-    <Text style={[ov.value, { color: accent }]}>{value}</Text>
-    <Text style={ov.label}>{label}</Text>
-  </View>
-);
-
-const ov = StyleSheet.create({
+const buildOvStyles = (C: Palette) => StyleSheet.create({
   card: {
     flex: 1,
     backgroundColor: C.surface,
@@ -303,25 +331,44 @@ const ov = StyleSheet.create({
   } as TextStyle,
 });
 
-// Enhanced API Call Function with better error handling for cloud
-const apiCall = async (endpoint: string, options: any = {}) => {
-  const config = {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...options.headers,
-    },
-  };
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-  if (!response.ok) throw new Error(`HTTP ${response.status}: ไม่สามารถดึงข้อมูลได้`);
-  return response.json();
+const ovStylesByMode = { dark: buildOvStyles(DARK_C), light: buildOvStyles(LIGHT_C) };
+
+const OverviewCard = ({
+  icon,
+  value,
+  label,
+  accent,
+  C,
+}: {
+  icon: React.ReactNode;
+  value: string | number;
+  label: string;
+  accent: string;
+  C: Palette;
+}) => {
+  const ov = C === DARK_C ? ovStylesByMode.dark : ovStylesByMode.light;
+  return (
+    <View style={[ov.card, { borderTopColor: accent }]}>
+      <View style={ov.iconContainer}>{icon}</View>
+      <Text style={[ov.value, { color: accent }]}>{value}</Text>
+      <Text style={ov.label}>{label}</Text>
+    </View>
+  );
 };
 
-export default function OwenShopHome() {
-  const [activeTab, setActiveTab] = useState<"Home" | "Add" | "Products" | "Categories" | "Edit">("Home");
+function OwenShopHomeInner() {
+  const { mode } = useAppTheme();
+  const C = mode === "dark" ? DARK_C : LIGHT_C;
+  const styles = mode === "dark" ? stylesByMode.dark : stylesByMode.light;
+
+  const [activeTab, setActiveTab] = useState<"Home" | "Add" | "Products" | "Categories" | "Stores" | "Finances" | "Settings" | "Edit">("Home");
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userRole, setUserRole] = useState<"admin" | "user">("user");
+  const [isAuthScreenOpen, setIsAuthScreenOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [currentScreen, setCurrentScreen] = useState<string>('dashboard');
-  const [authToken] = useState<string | null>(null); // ตั้ง token ตรงนี้ถ้ามี login
+  const [authToken] = useState<string | null>(null);
   const [skins, setSkins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -332,17 +379,20 @@ export default function OwenShopHome() {
   const isTablet = windowWidth >= 640 && windowWidth < 1024;
   const cardWidth = isDesktop ? "32.2%" : isTablet ? "48.8%" : "100%";
 
-  // This is a function that "retrieves products" directly from the API.
-  // It calls /products via the apiCall() method declared above.
   const fetchProducts = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const data = await apiCall('/products');
-
-      if (!Array.isArray(data)) {
-        throw new Error('Invalid data format received');
+      let data: any[] = [];
+      try {
+        data = await apiCall('/products', {}, userRole);
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid data format received');
+        }
+      } catch (networkErr: any) {
+        console.warn('API server offline or unreachable, using local fallback products:', networkErr.message);
+        data = defaultProducts;
       }
 
       const parsedData = data.map((product: any) => ({
@@ -356,133 +406,323 @@ export default function OwenShopHome() {
       setSkins(parsedData);
       console.log(`Loaded ${parsedData.length} products`);
     } catch (err: any) {
-      console.error('Fetch products error:', err);
-      setError(err.message);
+      console.warn('Fetch products warning:', err.message);
+      setSkins(defaultProducts.map((p: any) => ({ ...p, _image_url: normalizeImageUrl(p.image_url || p.image) })));
     } finally {
       setLoading(false);
     }
   };
 
-  // When you login and go to the Products screen → fetch products
   useEffect(() => {
     if (authToken && currentScreen === 'products') {
       fetchProducts();
     }
   }, [authToken, currentScreen]);
 
-  // Auto-fetch products when accessing dashboard
   useEffect(() => {
     if (authToken && currentScreen === 'dashboard' && skins.length === 0) {
       fetchProducts();
     }
   }, [authToken, currentScreen]);
 
-  // Add product handler
+  // Add product handler — persists to the database first; the list is only
+  // updated locally once the API confirms the write, so a failed save never
+  // shows as a false success.
   const handleAddProduct = async (newProduct: any) => {
-    try {
-      try {
-        await apiCall('/products', {
-          method: 'POST',
-          body: JSON.stringify(newProduct),
-        });
-      } catch (e) {
-        console.warn('API POST skipped or failed, updating local state:', e);
-      }
-
-      const createdItem = {
-        id: Date.now(),
-        ...newProduct,
-        _image_url: newProduct.image_url,
-      };
-
-      setSkins((prev) => [createdItem, ...prev]);
-    } catch (err: any) {
-      console.error('handleAddProduct error:', err);
-      throw err;
+    if (userRole !== "admin") {
+      alert("403 Forbidden: Requires Admin privileges to add products.");
+      return;
     }
+
+    const result = await apiCall('/products', {
+      method: 'POST',
+      body: JSON.stringify({ ...newProduct, _userRole: userRole }),
+    }, userRole);
+
+    const createdItem = {
+      id: result?.id ?? Date.now(),
+      ...newProduct,
+      _image_url: newProduct.image_url,
+    };
+
+    setSkins((prev) => [createdItem, ...prev]);
   };
 
-  // Edit product handler
+  // Edit product handler — same pattern: only reflected locally after the
+  // database update succeeds.
   const handleEditProduct = async (id: number | string, updatedProduct: any) => {
-    try {
-      try {
-        await apiCall(`/products/${id}`, {
-          method: 'PUT',
-          body: JSON.stringify(updatedProduct),
-        });
-      } catch (e) {
-        console.warn('API PUT skipped or failed, updating local state:', e);
-      }
-
-      setSkins((prev) => 
-        prev.map(skin => 
-          (skin.id === id || skin._id === id) 
-            ? { ...skin, ...updatedProduct, _image_url: updatedProduct.image_url } 
-            : skin
-        )
-      );
-    } catch (err: any) {
-      console.error('handleEditProduct error:', err);
-      throw err;
+    if (userRole !== "admin") {
+      alert("403 Forbidden: Requires Admin privileges to edit products.");
+      return;
     }
+
+    await apiCall(`/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ ...updatedProduct, _userRole: userRole }),
+    }, userRole);
+
+    setSkins((prev) =>
+      prev.map(skin =>
+        (skin.id === id || skin._id === id)
+          ? { ...skin, ...updatedProduct, _image_url: updatedProduct.image_url }
+          : skin
+      )
+    );
   };
 
-  // If you don't have login function you can just use this
+  // Delete product handler — same pattern: only removed locally after the
+  // database delete succeeds.
+  const handleDeleteProduct = async (id: number | string) => {
+    if (userRole !== "admin") {
+      alert("403 Forbidden: Requires Admin privileges to delete products.");
+      return;
+    }
+
+    await apiCall(`/products/${id}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ _userRole: userRole }),
+    }, userRole);
+
+    setSkins((prev) => prev.filter(skin => skin.id !== id && skin._id !== id));
+  };
+
   useEffect(() => {
     fetchProducts();
   }, []);
 
+  // Render Sign In / Sign Up Screen if requested
+  if (isAuthScreenOpen) {
+    return (
+      <AuthScreen
+        onAuthSuccess={(loggedInUser) => {
+          setCurrentUser(loggedInUser);
+          const role = loggedInUser?.role === "admin" ? "admin" : "user";
+          setUserRole(role);
+          setIsAuthScreenOpen(false);
+        }}
+        onCancel={() => setIsAuthScreenOpen(false)}
+        apiCall={apiCall}
+      />
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+      <StatusBar barStyle={mode === "dark" ? "light-content" : "dark-content"} backgroundColor={C.bg} />
 
       {/* ── Top Header ── */}
       <View style={styles.header}>
-        {/* Logo */}
-        <Image
-          source={require("@/assets/images/owen-shop-logo.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        {/* 3-Line Hamburger Menu Icon */}
+        <TouchableOpacity
+          style={styles.headerMenuBtn}
+          onPress={() => setIsMenuOpen(true)}
+          activeOpacity={0.7}
+        >
+          <MenuIcon color={C.accent} size={24} />
+        </TouchableOpacity>
 
-        {/* Shop Name */}
-        <View style={styles.shopNameBox}>
-          <Text style={styles.shopName}>Owen Shop</Text>
-          <Text style={styles.shopSub}>Valorant Skins Store</Text>
+        {/* Title in Center */}
+        <View style={styles.headerCenterBox}>
+          <Text style={styles.headerTitleText}>
+            {activeTab === "Edit" ? "Edit Product" : activeTab === "Add" ? "Add Product" : activeTab === "Home" ? "VAL Model Shop" : activeTab}
+          </Text>
         </View>
 
-        {/* Admin Avatar */}
-        <TouchableOpacity style={styles.avatar} activeOpacity={0.8}>
-          <Text style={styles.avatarText}>AD</Text>
+        {/* User / Profile Avatar Button */}
+        <TouchableOpacity
+          style={[styles.headerProfileBtn, !currentUser && { backgroundColor: "#1e1e24", borderColor: "#333340", borderWidth: 1 }]}
+          onPress={() => {
+            if (!currentUser) {
+              setIsAuthScreenOpen(true);
+            } else {
+              setIsLogoutConfirmOpen(true);
+            }
+          }}
+          activeOpacity={0.8}
+        >
+          {currentUser ? (
+            <Text style={{ color: "#ffffff", fontWeight: "800", fontSize: 13 }}>
+              {currentUser.username ? currentUser.username.substring(0, 2).toUpperCase() : "US"}
+            </Text>
+          ) : (
+            <ProfileIcon color="#888899" size={20} />
+          )}
         </TouchableOpacity>
       </View>
+
+      {/* ── Full-Screen Menu Modal Overlay ── */}
+      <Modal
+        visible={isMenuOpen}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsMenuOpen(false)}
+      >
+        <SafeAreaView style={styles.menuModalContainer}>
+          <StatusBar barStyle={mode === "dark" ? "light-content" : "dark-content"} backgroundColor={C.bg} />
+
+          {/* Top Bar inside Menu Overlay */}
+          <View style={styles.menuModalHeader}>
+            <TouchableOpacity
+              style={styles.menuCloseBtn}
+              onPress={() => setIsMenuOpen(false)}
+              activeOpacity={0.7}
+            >
+              <CloseIcon color={C.accent} size={22} />
+            </TouchableOpacity>
+            <Text style={styles.menuModalTitle}>VAL Model</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Centered Menu List */}
+          <View style={styles.menuItemsList}>
+            {(["Home", "Products", "Categories", "Stores", "Finances", "Settings"] as const).map((menuName) => {
+              const isActive = activeTab === menuName;
+              return (
+                <TouchableOpacity
+                  key={menuName}
+                  style={styles.menuItemBtn}
+                  onPress={() => {
+                    setActiveTab(menuName as any);
+                    setIsMenuOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.menuItemText, isActive && styles.menuItemTextActive]}>
+                    {menuName}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Bottom Login / Logout Action */}
+          <TouchableOpacity
+            style={styles.logoutBtn}
+            onPress={() => {
+              setIsMenuOpen(false);
+              if (!currentUser) {
+                setIsAuthScreenOpen(true);
+              } else {
+                setIsLogoutConfirmOpen(true);
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.logoutText}>
+              {currentUser ? `Log out (${currentUser.username} - ${currentUser.role.toUpperCase()})` : "Sign In / Sign Up"}
+            </Text>
+          </TouchableOpacity>
+        </SafeAreaView>
+      </Modal>
+
+      {/* ── Logout Confirmation Modal ── */}
+      <Modal
+        visible={isLogoutConfirmOpen}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsLogoutConfirmOpen(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.roleModalCard}>
+            <View style={styles.roleModalHeader}>
+              <Text style={styles.roleModalTitle}>🚪 Confirm Logout</Text>
+              <TouchableOpacity onPress={() => setIsLogoutConfirmOpen(false)}>
+                <Text style={styles.roleModalCloseX}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.roleCurrentBox}>
+              <Text style={styles.roleCurrentLabel}>
+                Logged in as: {currentUser?.username} ({currentUser?.role?.toUpperCase()})
+              </Text>
+              <Text style={[styles.roleCurrentBadge, { color: C.textPrimary, fontSize: 14, marginTop: 4 }]}>
+                Are you sure you want to log out?
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+              <TouchableOpacity
+                style={[styles.roleSwitchBtn, { flex: 1, backgroundColor: C.surfaceCard, borderColor: C.border }]}
+                onPress={() => setIsLogoutConfirmOpen(false)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.roleSwitchBtnText, { color: C.textSecondary }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.roleSwitchBtn, { flex: 1, backgroundColor: "#2a0a0e", borderColor: C.accent }]}
+                onPress={() => {
+                  setCurrentUser(null);
+                  setUserRole("user");
+                  if (activeTab === "Add" || activeTab === "Edit") {
+                    setActiveTab("Home");
+                  }
+                  setIsLogoutConfirmOpen(false);
+                  setIsAuthScreenOpen(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.roleSwitchBtnText, { color: C.accent }]}>
+                  Log Out
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── Divider ── */}
       <View style={styles.divider} />
 
       {/* ── Dynamic Tab Content ── */}
-      {activeTab === "Add" ? (
+      {activeTab === "Settings" ? (
+        <SettingsScreen
+          currentUser={currentUser}
+          userRole={userRole}
+          onOpenAuth={() => setIsAuthScreenOpen(true)}
+          onLogout={() => setIsLogoutConfirmOpen(true)}
+          onRefreshData={fetchProducts}
+        />
+      ) : activeTab === "Add" && userRole === "admin" ? (
         <AddProductScreen
-          onBack={() => setActiveTab("Home")}
+          onBack={() => setActiveTab("Products")}
           onAddProduct={handleAddProduct}
         />
-      ) : activeTab === "Edit" && editingProduct ? (
+      ) : activeTab === "Edit" && editingProduct && userRole === "admin" ? (
         <EditProductScreen
           onBack={() => setActiveTab("Products")}
           onEditProduct={handleEditProduct}
           initialData={editingProduct}
         />
-      ) : activeTab === "Products" ? (
+      ) : activeTab === "Finances" ? (
+        <FinancesScreen
+          onBack={() => setActiveTab("Home")}
+        />
+      ) : (activeTab === "Products" || activeTab === "Stores") ? (
         <ProductsScreen
           skins={skins}
           loading={loading}
           error={error}
+          userRole={userRole}
           onRefresh={fetchProducts}
-          onGoToAdd={() => setActiveTab("Add")}
+          onGoToAdd={() => {
+            if (userRole !== "admin") {
+              alert("403 Forbidden: Requires Admin privileges to add products.");
+              return;
+            }
+            setActiveTab("Add");
+          }}
           onEditProduct={(product) => {
+            if (userRole !== "admin") {
+              alert("403 Forbidden: Requires Admin privileges to edit products.");
+              return;
+            }
             setEditingProduct(product);
             setActiveTab("Edit");
           }}
+          onDeleteProduct={handleDeleteProduct}
         />
       ) : (
         <ScrollView
@@ -494,18 +734,21 @@ export default function OwenShopHome() {
           <Text style={styles.sectionTitle}>Overview</Text>
           <View style={styles.overviewRow}>
             <OverviewCard
+              C={C}
               icon={<GamepadIcon color="#ff4655" size={26} />}
               value={skins.length || 0}
               label="Total Skins"
               accent="#ff4655"
             />
             <OverviewCard
-              icon={<CartIcon color="#4fc3f7" size={26} />}
+              C={C}
+              icon={<CartIcon color={C.priceBlue} size={26} />}
               value={12}
               label="New Orders"
-              accent="#4fc3f7"
+              accent={C.priceBlue}
             />
             <OverviewCard
+              C={C}
               icon={<AlertIcon color="#f97316" size={26} />}
               value={skins.filter(s => s.stock != null && Number(s.stock) < 5).length}
               label="Low Stock"
@@ -527,16 +770,16 @@ export default function OwenShopHome() {
 
           {/* Skin Cards */}
           {loading ? (
-            <Text style={styles.loadingText}>กำลังโหลดข้อมูลจาก API...</Text>
+            <Text style={styles.loadingText}>Loading data from API...</Text>
           ) : error ? (
             <Text style={styles.errorText}>{error}</Text>
           ) : skins.length === 0 ? (
-            <Text style={styles.loadingText}>ไม่พบรายการสินค้า</Text>
+            <Text style={styles.loadingText}>No products found</Text>
           ) : (
             <View style={styles.skinListGrid}>
               {skins.map((skin, index) => (
                 <View key={skin.id || skin._id || index} style={{ width: cardWidth as any }}>
-                  <SkinCard skin={skin} />
+                  <SkinCard skin={skin} C={C} />
                 </View>
               ))}
             </View>
@@ -590,7 +833,7 @@ export default function OwenShopHome() {
   );
 }
 
-const styles = StyleSheet.create({
+const buildStyles = (C: Palette) => StyleSheet.create({
   safe: {
     flex: 1,
     backgroundColor: C.bg,
@@ -603,42 +846,91 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: C.navBg,
-    gap: 10,
   } as ViewStyle,
-  logo: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-  } as ImageStyle,
-  shopNameBox: {
-    flex: 1,
-  } as ViewStyle,
-  shopName: {
-    fontSize: 18,
-    fontWeight: "800",
-    color: C.accent,
-    letterSpacing: 0.5,
-  } as TextStyle,
-  shopSub: {
-    fontSize: 11,
-    color: C.textMuted,
-    fontWeight: "500",
-  } as TextStyle,
-  avatar: {
+  headerMenuBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "flex-start",
+  } as ViewStyle,
+  headerCenterBox: {
+    flex: 1,
+    alignItems: "center",
+  } as ViewStyle,
+  headerTitleText: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: C.textPrimary,
+    letterSpacing: 0.3,
+  } as TextStyle,
+  headerProfileBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: C.accent,
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 2,
-    borderColor: C.accentDim,
   } as ViewStyle,
-  avatarText: {
-    color: "#fff",
+
+  // Full-Screen Menu Modal Overlay
+  menuModalContainer: {
+    flex: 1,
+    backgroundColor: C.bg,
+    justifyContent: "space-between",
+  } as ViewStyle,
+  menuModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  } as ViewStyle,
+  menuCloseBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "flex-start",
+  } as ViewStyle,
+  menuModalTitle: {
+    fontSize: 18,
     fontWeight: "800",
-    fontSize: 14,
-    letterSpacing: 1,
+    color: C.textPrimary,
+    letterSpacing: 0.5,
+  } as TextStyle,
+  menuItemsList: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 24,
+    paddingVertical: 40,
+  } as ViewStyle,
+  menuItemBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+  } as ViewStyle,
+  menuItemText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: C.textSecondary,
+    textAlign: "center",
+    letterSpacing: 0.3,
+  } as TextStyle,
+  menuItemTextActive: {
+    color: C.accent,
+    fontWeight: "800",
+    textDecorationLine: "none",
+  } as TextStyle,
+  logoutBtn: {
+    alignItems: "center",
+    paddingBottom: 36,
+    paddingTop: 16,
+  } as ViewStyle,
+  logoutText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: C.accent,
   } as TextStyle,
 
   divider: {
@@ -733,7 +1025,7 @@ const styles = StyleSheet.create({
   navAddCircle: {
     width: 36,
     height: 36,
-    backgroundColor: "#1e1e1e",
+    backgroundColor: C.surfaceCard,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: C.border,
@@ -746,4 +1038,108 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "600",
   } as TextStyle,
+
+  // Role Security Modal Styles
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.85)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  } as ViewStyle,
+  roleModalCard: {
+    backgroundColor: C.surface,
+    borderColor: C.border,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 20,
+    width: "100%",
+    maxWidth: 480,
+    gap: 14,
+  } as ViewStyle,
+  roleModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    paddingBottom: 12,
+  } as ViewStyle,
+  roleModalTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: C.textPrimary,
+  } as TextStyle,
+  roleModalCloseX: {
+    fontSize: 18,
+    color: C.textMuted,
+    fontWeight: "bold",
+    padding: 4,
+  } as TextStyle,
+  roleCurrentBox: {
+    backgroundColor: C.surfaceCard,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: C.border,
+    gap: 4,
+  } as ViewStyle,
+  roleCurrentLabel: {
+    fontSize: 11,
+    color: C.textMuted,
+  } as TextStyle,
+  roleCurrentBadge: {
+    fontSize: 16,
+    fontWeight: "800",
+  } as TextStyle,
+  roleInstruction: {
+    fontSize: 12,
+    color: C.textSecondary,
+    marginTop: 4,
+  } as TextStyle,
+  roleSwitchBtn: {
+    backgroundColor: C.surfaceCard,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  } as ViewStyle,
+  roleSwitchBtnActiveAdmin: {
+    backgroundColor: "#2a0a0e",
+    borderColor: C.accent,
+  } as ViewStyle,
+  roleSwitchBtnActiveUser: {
+    backgroundColor: "#0d1a2a",
+    borderColor: "#4fc3f7",
+  } as ViewStyle,
+  roleSwitchBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: C.textPrimary,
+  } as TextStyle,
+  roleNotesBox: {
+    backgroundColor: C.surfaceCard,
+    borderColor: C.border,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 6,
+  } as ViewStyle,
+  roleNotesText: {
+    fontSize: 11,
+    color: C.textSecondary,
+    lineHeight: 18,
+  } as TextStyle,
 });
+
+const stylesByMode = { dark: buildStyles(DARK_C), light: buildStyles(LIGHT_C) };
+
+export default function OwenShopHome() {
+  return (
+    <ThemeProvider>
+      <OwenShopHomeInner />
+    </ThemeProvider>
+  );
+}

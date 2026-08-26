@@ -1,35 +1,62 @@
 [
-    {
-        "id": 1,
-        "name": "Phaseguard Vandal",
-        "type": "Vandal",
-        "vp": 2475,
-        "price": 625,
-        "tagColor": "#cfc53c",
-        "tagBg": "#2a1a4a",
-        "tagText": "#c084fc",
-        "image_url":"https://github.com/BenyapaTangwai/Inventory_App/blob/main/image_Product/Phaseguard_Vandal.webp"
-    },
-    {
-        "id": 2,
-        "name": "CYRAX Vandal",
-        "type": "Vandal",
-        "vp": 2175,
-        "price": 625,
-        "tagColor": "#cf7c3c",
-        "tagBg": "#2a1a4a",
-        "tagText": "#c084fc",
-        "image_url":"https://github.com/BenyapaTangwai/Inventory_App/blob/main/image_Product/CYRAX_Vandal.webp"
-    },
-    {
-        "id": 3,
-        "name": "Reaver Vandal",
-        "type": "Vandal",
-        "vp": 1175,
-        "price": 500,
-        "tagColor": "#6c3ccf",
-        "tagBg": "#2a1a4a",
-        "tagText": "#c084fc",
-            "image_url":"https://github.com/BenyapaTangwai/Inventory_App/blob/main/image_Product/Reaver_Vandal.webp"
-        }
+  {
+    "id": 1,
+    "name": "Phaseguard Vandal",
+    "type": "Vandal",
+    "vp": 2475,
+    "price": 625,
+    "stock": 9,
+    "tagColor": "#cfc53c",
+    "tagBg": "#2a1a4a",
+    "tagText": "#c084fc",
+    "image_url": "https://media.valorant-api.com/weaponskins/b8a6d8f5-4171-c0f3-eab4-9bb64af25f4f/displayicon.png"
+  },
+  {
+    "id": 2,
+    "name": "Reaver Vandal",
+    "type": "Vandal",
+    "vp": 1175,
+    "price": 500,
+    "stock": 3,
+    "tagColor": "#6c3ccf",
+    "tagBg": "#2a1a4a",
+    "tagText": "#c084fc",
+    "image_url": "https://media.valorant-api.com/weaponskins/8dda01a6-4237-f430-ac70-c3ba677963e9/displayicon.png"
+  },
+  {
+    "id": 3,
+    "name": "CYRAX Vandal",
+    "type": "Vandal",
+    "vp": 2175,
+    "price": 625,
+    "stock": 8,
+    "tagColor": "#cf7c3c",
+    "tagBg": "#2a1a4a",
+    "tagText": "#c084fc",
+    "image_url": "https://media.valorant-api.com/weaponskins/e06fd704-4171-b5ea-5028-d3befb62107d/displayicon.png"
+  },
+  {
+    "id": 4,
+    "name": "Kuronami Vandal",
+    "type": "Vandal",
+    "vp": 2375,
+    "price": 625,
+    "stock": 8,
+    "tagColor": "#3c91cf",
+    "tagBg": "#2a1a4a",
+    "tagText": "#c084fc",
+    "image_url": "https://media.valorant-api.com/weaponskins/d8d5d7a1-4d81-8560-54bc-0692ab40f69b/displayicon.png"
+  },
+  {
+    "id": 5,
+    "name": "Neo Frontier Phantom",
+    "type": "Phantom",
+    "vp": 2175,
+    "price": 625,
+    "stock": 1,
+    "tagColor": "#cfa83c",
+    "tagBg": "#2a1a4a",
+    "tagText": "#c084fc",
+    "image_url": "https://media.valorant-api.com/weaponskins/bd647d56-4542-19cd-e1ed-4fb429c78cf9/displayicon.png"
+  }
 ]

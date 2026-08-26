@@ -15,8 +15,10 @@ import {
 } from "react-native";
 
 import { SearchIcon, EditIcon } from "./tab-icons";
+import DeleteProductButton from "./delete-product-button";
+import { useAppTheme } from "@/theme/theme-context";
 
-const C = {
+const DARK_C = {
   bg: "#0a0a0a",
   surface: "#151515",
   surfaceCard: "#1a1a1a",
@@ -31,28 +33,62 @@ const C = {
   btnBg: "#ff4655",
   refreshBg: "#1e1e1e",
   vpBlue: "#4fc3f7",
+  imageFrameBg: "#0c0507",
+  imageFrameBorder: "#1e0b0e",
+  chipBg: "#1e1e1e",
 };
+
+const LIGHT_C = {
+  bg: "#f2f2f5",
+  surface: "#ffffff",
+  surfaceCard: "#f5f5f7",
+  border: "#e2e2e6",
+  accent: "#ff4655",
+  textPrimary: "#111111",
+  textSecondary: "#5c5c66",
+  textMuted: "#8a8a94",
+  badgeBg: "#dcfce7",
+  badgeText: "#15803d",
+  badgeBorder: "#86efac",
+  btnBg: "#ff4655",
+  refreshBg: "#eef0f3",
+  vpBlue: "#0284c7",
+  imageFrameBg: "#f4f0ef",
+  imageFrameBorder: "#eadfdd",
+  chipBg: "#eef0f3",
+};
+
+type Palette = typeof DARK_C;
 
 interface ProductsScreenProps {
   skins: any[];
   loading: boolean;
   error: string | null;
+  userRole?: string;
   onRefresh: () => Promise<void> | void;
   onGoToAdd: () => void;
   onEditProduct: (product: any) => void;
+  onDeleteProduct: (id: string | number) => Promise<void> | void;
 }
 
 export default function ProductsScreen({
   skins,
   loading,
   error,
+  userRole = "admin",
   onRefresh,
   onGoToAdd,
   onEditProduct,
+  onDeleteProduct
 }: ProductsScreenProps) {
+  const { mode } = useAppTheme();
+  const C = mode === "dark" ? DARK_C : LIGHT_C;
+  const styles = mode === "dark" ? stylesByMode.dark : stylesByMode.light;
+
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const { width: windowWidth } = useWindowDimensions();
+  const isAdmin = userRole === "admin";
 
   // Responsive Grid Calculation
   // Desktop >= 1024px: 3 columns (32.2%)
@@ -108,14 +144,16 @@ export default function ProductsScreen({
             ) : null}
           </View>
 
-          {/* + Add Button */}
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={onGoToAdd}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.addBtnText}>+ Add</Text>
-          </TouchableOpacity>
+          {/* + Add Button (Admin Only) */}
+          {isAdmin && (
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={onGoToAdd}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.addBtnText}>+ Add</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Refresh Button */}
           <TouchableOpacity
@@ -141,29 +179,33 @@ export default function ProductsScreen({
           {loading ? (
             <View style={styles.statusBox}>
               <ActivityIndicator size="large" color={C.accent} />
-              <Text style={styles.statusText}>กำลังโหลดรายการสินค้า...</Text>
+              <Text style={styles.statusText}>Loading product inventory...</Text>
             </View>
           ) : error ? (
             <View style={styles.statusBox}>
               <Text style={styles.errorText}>⚠️ {error}</Text>
               <TouchableOpacity style={styles.retryBtn} onPress={onRefresh}>
-                <Text style={styles.retryText}>ลองใหม่อีกครั้ง</Text>
+                <Text style={styles.retryText}>Try Again</Text>
               </TouchableOpacity>
             </View>
           ) : filteredSkins.length === 0 ? (
             <View style={styles.statusBox}>
               <Text style={styles.statusText}>
-                {searchQuery ? `ไม่พบสินค้าที่ตรงกับ "${searchQuery}"` : "ยังไม่มีรายการสินค้า"}
+                {searchQuery ? `No products found matching "${searchQuery}"` : "No products available"}
               </Text>
             </View>
           ) : (
             <View style={styles.gridContainer}>
               {filteredSkins.map((skin, index) => (
-                <ProductCard 
-                  key={skin.id || skin._id || index} 
-                  skin={skin} 
-                  cardWidth={cardWidth} 
-                  onEdit={() => onEditProduct(skin)} 
+                <ProductCard
+                  key={skin.id || skin._id || index}
+                  skin={skin}
+                  cardWidth={cardWidth}
+                  isAdmin={isAdmin}
+                  C={C}
+                  styles={styles}
+                  onEdit={() => onEditProduct(skin)}
+                  onDelete={() => onDeleteProduct(skin.id || skin._id)}
                 />
               ))}
             </View>
@@ -175,7 +217,23 @@ export default function ProductsScreen({
 }
 
 // Extracted component to handle local image error state
-const ProductCard = ({ skin, cardWidth, onEdit }: { skin: any, cardWidth: number | string, onEdit: () => void }) => {
+const ProductCard = ({
+  skin,
+  cardWidth,
+  isAdmin = true,
+  C,
+  styles,
+  onEdit,
+  onDelete
+}: {
+  skin: any,
+  cardWidth: number | string,
+  isAdmin?: boolean,
+  C: Palette,
+  styles: ReturnType<typeof buildStyles>,
+  onEdit: () => void,
+  onDelete: () => Promise<void> | void
+}) => {
   const [imgError, setImgError] = useState(false);
   const imgUri = skin._image_url || skin.image_url || skin.image;
   const name = skin.name || skin.title || "Unknown Skin";
@@ -190,74 +248,78 @@ const ProductCard = ({ skin, cardWidth, onEdit }: { skin: any, cardWidth: number
     <View style={[styles.productCard, { width: cardWidth as any }]}>
       {/* 1. Large Banner Image Box */}
       <View style={styles.largeImageArea}>
-                      {imgUri && !imgError ? (
-                        <Image
-                          source={{ uri: imgUri }}
-                          style={styles.productImg}
-                          resizeMode="contain"
-                          onError={() => setImgError(true)}
-                        />
-                      ) : (
-                        <View style={styles.noImgBox}>
-                          <Text style={styles.noImgText}>No Image</Text>
-                        </View>
-                      )}
+        {imgUri && !imgError ? (
+          <Image
+            source={{ uri: imgUri }}
+            style={styles.productImg}
+            resizeMode="contain"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <View style={styles.noImgBox}>
+            <Text style={styles.noImgText}>No Image</Text>
+          </View>
+        )}
 
+        {/* Status Overlay Badge at Top-Right */}
+        <View style={styles.badgeOverlay}>
+          <Text style={styles.badgeOverlayText}>{badge}</Text>
+        </View>
+      </View>
 
-                      {/* Status Overlay Badge at Top-Right */}
-                      <View style={styles.badgeOverlay}>
-                        <Text style={styles.badgeOverlayText}>{badge}</Text>
-                      </View>
-                    </View>
+      {/* 2. Middle Tags Row */}
+      <View style={styles.infoTagsRow}>
+        <View style={styles.tagChip}>
+          <Text style={styles.tagChipText}>{category}</Text>
+        </View>
+        <View style={[styles.tagChip, styles.stockChip]}>
+          <Text style={styles.stockChipText}>{stock} in stock</Text>
+        </View>
+        {brand ? (
+          <View style={styles.tagChip}>
+            <Text style={styles.tagChipText}>{brand}</Text>
+          </View>
+        ) : null}
+      </View>
 
-                    {/* 2. Middle Tags Row */}
-                    <View style={styles.infoTagsRow}>
-                      <View style={styles.tagChip}>
-                        <Text style={styles.tagChipText}>{category}</Text>
-                      </View>
-                      <View style={[styles.tagChip, styles.stockChip]}>
-                        <Text style={styles.stockChipText}>{stock} in stock</Text>
-                      </View>
-                      {brand ? (
-                        <View style={styles.tagChip}>
-                          <Text style={styles.tagChipText}>{brand}</Text>
-                        </View>
-                      ) : null}
-                    </View>
+      {/* 3. Bottom Row: Name on Left, VP & Price (THB) on Right */}
+      <View style={styles.bottomRow}>
+        {/* Left Side: Product Name */}
+        <View style={styles.nameBoxLeft}>
+          <Text style={styles.productTitle} numberOfLines={2}>
+            {name}
+          </Text>
+        </View>
 
-                    {/* 3. Bottom Row: Name on Left, VP & Price (THB) on Right */}
-                    <View style={styles.bottomRow}>
-                      {/* Left Side: Product Name */}
-                      <View style={styles.nameBoxLeft}>
-                        <Text style={styles.productTitle} numberOfLines={2}>
-                          {name}
-                        </Text>
-                      </View>
-
-                      {/* Right Side: VP Points & THB Price */}
-                      <View style={styles.priceBoxRight}>
-                        <TouchableOpacity 
-                          style={styles.editBtnInline} 
-                          onPress={onEdit}
-                          activeOpacity={0.8}
-                        >
-                          <EditIcon color="#ff4655" size={12} />
-                          <Text style={styles.editBtnInlineText}>Edit</Text>
-                        </TouchableOpacity>
-                        <Text style={styles.thbTextLarge}>
-                          ฿{thbPrice ? thbPrice.toLocaleString() : "625"}
-                        </Text>
-                        <Text style={styles.vpTextSmall}>
-                          {vpPrice ? vpPrice.toLocaleString() : "2,175"}{" "}
-                          <Text style={styles.vpUnitText}>VP</Text>
-                        </Text>
-                      </View>
-                    </View>
+        {/* Right Side: VP Points & THB Price */}
+        <View style={styles.priceBoxRight}>
+          {isAdmin && (
+            <View style={styles.actionButtonsRow}>
+              <TouchableOpacity
+                style={styles.editBtnInline}
+                onPress={onEdit}
+                activeOpacity={0.8}
+              >
+                <EditIcon color={C.textPrimary} size={12} />
+                <Text style={styles.editBtnInlineText}>Edit</Text>
+              </TouchableOpacity>
+              <DeleteProductButton onDelete={onDelete} />
+            </View>
+          )}
+          <Text style={styles.thbTextLarge}>
+            ฿{thbPrice ? thbPrice.toLocaleString() : "625"}
+          </Text>
+          <Text style={styles.vpTextSmall}>
+            {vpPrice ? vpPrice.toLocaleString() : "2,175"}{" "}
+            <Text style={styles.vpUnitText}>VP</Text>
+          </Text>
+        </View>
+      </View>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
+const buildStyles = (C: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -419,10 +481,10 @@ const styles = StyleSheet.create({
   largeImageArea: {
     width: "100%",
     height: 165,
-    backgroundColor: "#0c0507",
+    backgroundColor: C.imageFrameBg,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#1e0b0e",
+    borderColor: C.imageFrameBorder,
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
@@ -453,20 +515,24 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 8,
   } as ViewStyle,
+  actionButtonsRow: {
+    flexDirection: "row",
+    gap: 4,
+  } as ViewStyle,
   editBtnInline: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 70, 85, 0.1)",
+    backgroundColor: "rgba(128, 128, 128, 0.15)",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: "#ff4655",
+    borderColor: C.textPrimary,
     marginBottom: 4,
     gap: 4,
   } as ViewStyle,
   editBtnInlineText: {
-    color: "#ff4655",
+    color: C.textPrimary,
     fontSize: 10,
     fontWeight: "700",
   } as TextStyle,
@@ -484,7 +550,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   } as ViewStyle,
   tagChip: {
-    backgroundColor: "#1e1e1e",
+    backgroundColor: C.chipBg,
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -546,3 +612,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   } as TextStyle,
 });
+
+const stylesByMode = { dark: buildStyles(DARK_C), light: buildStyles(LIGHT_C) };

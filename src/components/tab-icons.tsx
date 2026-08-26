@@ -231,6 +231,32 @@ export const EditIcon = ({ color = '#ff0000', size = 26 }: IconProps) => (
   </Svg>
 );
 
+export const DeleteIcon = ({ color = '#ff0000', size = 26 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M3 6H21"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M8 6V4C8 3.44772 8.44772 3 9 3H15C15.5523 3 16 3.44772 16 4V6"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Path
+      d="M5 6L6.5 19.5C6.58333 20.25 7.25 21 8 21H16C16.75 21 17.4167 20.25 17.5 19.5L19 6"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
 /**
  * Search Icon — outline magnifying glass
  */
@@ -240,4 +266,64 @@ export const SearchIcon = ({ color = '#ff0000', size = 26 }: IconProps) => (
     <Path d="M16 16L21 21" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
   </Svg>
 );
+
+/**
+ * Hamburger / Menu Icon — 3 horizontal lines
+ */
+export const MenuIcon = ({ color = '#ffffff', size = 24 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M4 6H20" stroke={color} strokeWidth={2.5} strokeLinecap="round" />
+    <Path d="M4 12H20" stroke={color} strokeWidth={2.5} strokeLinecap="round" />
+    <Path d="M4 18H20" stroke={color} strokeWidth={2.5} strokeLinecap="round" />
+  </Svg>
+);
+
+/**
+ * Close / X Icon
+ */
+export const CloseIcon = ({ color = '#ffffff', size = 20 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M18 6L6 18" stroke={color} strokeWidth={2.5} strokeLinecap="round" />
+    <Path d="M6 6L18 18" stroke={color} strokeWidth={2.5} strokeLinecap="round" />
+  </Svg>
+);
+
+/**
+ * Profile / User Icon
+ */
+export const ProfileIcon = ({ color = '#ffffff', size = 20 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M20 21V19C20 16.7909 18.2091 15 16 15H8C5.79086 15 4 16.7909 4 19V21" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    <Circle cx="12" cy="7" r="4" stroke={color} strokeWidth={2} />
+  </Svg>
+);
+
+/**
+ * User Role Icon — sleek user silhouette
+ */
+export const UserRoleIcon = ({ color = '#4fc3f7', size = 16 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M19 20V18C19 16.1 17.2 14.5 15 14.5H9C6.8 14.5 5 16.1 5 18V20" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    <Circle cx="12" cy="7" r="4" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+  </Svg>
+);
+
+/**
+ * Admin Role Icon — sleek crown icon
+ */
+export const AdminRoleIcon = ({ color = '#ff4655', size = 16 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M3 18L4.5 8.5L9 12L12 4.5L15 12L19.5 8.5L21 18H3Z"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <Circle cx="4.5" cy="7" r="1" fill={color} />
+    <Circle cx="12" cy="3.2" r="1" fill={color} />
+    <Circle cx="19.5" cy="7" r="1" fill={color} />
+  </Svg>
+);
+
 

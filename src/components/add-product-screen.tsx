@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,9 +13,9 @@ import {
   TextStyle,
   ImageStyle,
 } from "react-native";
+import { useAppTheme } from "@/theme/theme-context";
 
-// Color Palette matching Owen Shop theme
-const C = {
+const DARK_C = {
   bg: "#0a0a0a",
   surface: "#151515",
   surfaceCard: "#1a1a1a",
@@ -29,7 +30,32 @@ const C = {
   successBg: "#052e16",
   error: "#ef4444",
   errorBg: "#450a0a",
+  inputFocusedBg: "#1f1013",
+  dropdownBg: "#000000",
+  imagePreviewBg: "#100507",
 };
+
+const LIGHT_C = {
+  bg: "#f2f2f5",
+  surface: "#ffffff",
+  surfaceCard: "#f5f5f7",
+  border: "#e2e2e6",
+  borderActive: "#ff4655",
+  accent: "#ff4655",
+  accentHover: "#e03e4d",
+  textPrimary: "#111111",
+  textSecondary: "#5c5c66",
+  textMuted: "#8a8a94",
+  success: "#16a34a",
+  successBg: "#dcfce7",
+  error: "#dc2626",
+  errorBg: "#fee2e2",
+  inputFocusedBg: "#fff1f2",
+  dropdownBg: "#ffffff",
+  imagePreviewBg: "#f4f0ef",
+};
+
+type Palette = typeof DARK_C;
 
 interface AddProductScreenProps {
   onBack?: () => void;
@@ -39,20 +65,32 @@ interface AddProductScreenProps {
 // Preset skin image options for quick selection
 const PRESET_IMAGES = [
   {
-    name: "Vandal",
-    url: "https://raw.githubusercontent.com/BenyapaTangwai/Inventory_App/main/image_Product/Phaseguard_Vandal.webp",
+    name: "Phaseguard",
+    url: "https://media.valorant-api.com/weaponskins/b8a6d8f5-4171-c0f3-eab4-9bb64af25f4f/displayicon.png",
   },
   {
     name: "CYRAX",
-    url: "https://raw.githubusercontent.com/BenyapaTangwai/Inventory_App/main/image_Product/CYRAX_Vandal.webp",
+    url: "https://media.valorant-api.com/weaponskins/e06fd704-4171-b5ea-5028-d3befb62107d/displayicon.png",
   },
   {
     name: "Reaver",
-    url: "https://raw.githubusercontent.com/BenyapaTangwai/Inventory_App/main/image_Product/Reaver_Vandal.webp",
+    url: "https://media.valorant-api.com/weaponskins/8dda01a6-4237-f430-ac70-c3ba677963e9/displayicon.png",
+  },
+  {
+    name: "Kuronami",
+    url: "https://media.valorant-api.com/weaponskins/d8d5d7a1-4d81-8560-54bc-0692ab40f69b/displayicon.png",
+  },
+  {
+    name: "Neo Frontier",
+    url: "https://media.valorant-api.com/weaponskins/bd647d56-4542-19cd-e1ed-4fb429c78cf9/displayicon.png",
   },
 ];
 
 export default function AddProductScreen({ onBack, onAddProduct }: AddProductScreenProps) {
+  const { mode } = useAppTheme();
+  const C = mode === "dark" ? DARK_C : LIGHT_C;
+  const styles = mode === "dark" ? stylesByMode.dark : stylesByMode.light;
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -78,11 +116,11 @@ export default function AddProductScreen({ onBack, onAddProduct }: AddProductScr
 
   const handleSubmit = async () => {
     if (!name.trim()) {
-      setErrorMsg("กรุณากรอกชื่อสินค้า (Product Name)");
+      setErrorMsg("Please enter Product Name");
       return;
     }
     if (!price.trim()) {
-      setErrorMsg("กรุณากรอกราคาสินค้า (Price THB)");
+      setErrorMsg("Please enter Price (THB)");
       return;
     }
 
@@ -115,15 +153,20 @@ export default function AddProductScreen({ onBack, onAddProduct }: AddProductScr
 
       await onAddProduct(productPayload);
 
-      setSuccessMsg("เพิ่มสินค้าสำเร็จแล้ว! (Product added successfully)");
+      setSuccessMsg("Product added successfully!");
       // Clear form
       setName("");
       setDescription("");
       setPrice("");
       setVp("");
       setImageUrl("");
+
+      // Auto-navigate back to Products after 1.5 seconds
+      setTimeout(() => {
+        if (onBack) onBack();
+      }, 1500);
     } catch (err: any) {
-      setErrorMsg(err.message || "เกิดข้อผิดพลาดในการเพิ่มสินค้า");
+      setErrorMsg(err.message || "An error occurred while adding product");
     } finally {
       setLoading(false);
     }
@@ -135,6 +178,20 @@ export default function AddProductScreen({ onBack, onAddProduct }: AddProductScr
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
+      {/* ── Success Toast Modal Overlay ── */}
+      <Modal transparent visible={!!successMsg} animationType="fade">
+        <View style={styles.toastOverlay}>
+          <View style={styles.toastCard}>
+            <View style={styles.toastCheckCircle}>
+              <Text style={styles.toastCheckIcon}>✓</Text>
+            </View>
+            <Text style={styles.toastTitle}>Success!</Text>
+            <Text style={styles.toastMsg}>{successMsg}</Text>
+            <Text style={styles.toastSub}>Returning to Products...</Text>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── Sub Header / Title Bar ── */}
       <View style={styles.subHeader}>
         {onBack && (
@@ -148,12 +205,7 @@ export default function AddProductScreen({ onBack, onAddProduct }: AddProductScr
         </View>
       </View>
 
-      {/* ── Messages Alert ── */}
-      {successMsg && (
-        <View style={styles.successBanner}>
-          <Text style={styles.successText}>✓ {successMsg}</Text>
-        </View>
-      )}
+      {/* ── Error Alert ── */}
       {errorMsg && (
         <View style={styles.errorBanner}>
           <Text style={styles.errorText}>⚠️ {errorMsg}</Text>
@@ -274,7 +326,7 @@ export default function AddProductScreen({ onBack, onAddProduct }: AddProductScr
               onPress={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
               activeOpacity={0.8}
             >
-              <Text style={{ color: category ? C.textPrimary : C.textPrimary, fontSize: 14 }}>
+              <Text style={{ color: C.textPrimary, fontSize: 14 }}>
                 {category || "SELECT GUN"}
               </Text>
               <Text style={{ color: C.textPrimary, fontSize: 12 }}>{isCategoryDropdownOpen ? "▲" : "▼"}</Text>
@@ -361,7 +413,7 @@ export default function AddProductScreen({ onBack, onAddProduct }: AddProductScr
             onPress={() => setIsEditionDropdownOpen(!isEditionDropdownOpen)}
             activeOpacity={0.8}
           >
-            <Text style={{ color: sizes ? C.textPrimary : C.textPrimary, fontSize: 14 }}>
+            <Text style={{ color: C.textPrimary, fontSize: 14 }}>
               {sizes || "SELECT EDITION"}
             </Text>
             <Text style={{ color: C.textPrimary, fontSize: 12 }}>{isEditionDropdownOpen ? "▲" : "▼"}</Text>
@@ -478,7 +530,7 @@ export default function AddProductScreen({ onBack, onAddProduct }: AddProductScr
   );
 }
 
-const styles = StyleSheet.create({
+const buildStyles = (C: Palette) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: C.bg,
@@ -590,15 +642,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     color: C.textPrimary,
     fontSize: 14,
-  } as ViewStyle,
+  } as any,
   inputFocused: {
     borderColor: C.accent,
-    backgroundColor: "#1f1013",
-  } as ViewStyle,
+    backgroundColor: C.inputFocusedBg,
+  } as any,
   textArea: {
     height: 72,
     textAlignVertical: "top",
-  } as ViewStyle,
+  } as any,
 
   // Presets
   presetTitle: {
@@ -621,7 +673,7 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   presetChipActive: {
     borderColor: C.accent,
-    backgroundColor: "#2a0a0e",
+    backgroundColor: C.errorBg,
   } as ViewStyle,
   presetChipText: {
     fontSize: 11,
@@ -636,7 +688,7 @@ const styles = StyleSheet.create({
   imagePreviewBox: {
     marginTop: 8,
     height: 110,
-    backgroundColor: "#100507",
+    backgroundColor: C.imagePreviewBg,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: C.border,
@@ -679,7 +731,7 @@ const styles = StyleSheet.create({
     top: 66,
     left: 0,
     right: 0,
-    backgroundColor: "#000000",
+    backgroundColor: C.dropdownBg,
     borderWidth: 1,
     borderColor: C.accent,
     zIndex: 20,
@@ -693,10 +745,70 @@ const styles = StyleSheet.create({
     backgroundColor: "#3b82f6",
   } as ViewStyle,
   dropdownItemText: {
-    color: "#ffffff",
+    color: C.textPrimary,
     fontSize: 14,
   } as TextStyle,
   dropdownItemTextActive: {
     color: "#ffffff",
   } as TextStyle,
+
+  // ── Toast Success Modal Overlay ──
+  toastOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.75)",
+    justifyContent: "center",
+    alignItems: "center",
+  } as ViewStyle,
+  toastCard: {
+    backgroundColor: C.surface,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "#22c55e",
+    paddingVertical: 36,
+    paddingHorizontal: 40,
+    alignItems: "center",
+    minWidth: 240,
+    maxWidth: 320,
+    shadowColor: "#22c55e",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+  } as ViewStyle,
+  toastCheckCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: C.successBg,
+    borderWidth: 3,
+    borderColor: "#22c55e",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  } as ViewStyle,
+  toastCheckIcon: {
+    fontSize: 36,
+    color: "#22c55e",
+    fontWeight: "900",
+  } as TextStyle,
+  toastTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: C.textPrimary,
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  } as TextStyle,
+  toastMsg: {
+    fontSize: 15,
+    color: "#22c55e",
+    fontWeight: "600",
+    textAlign: "center",
+    marginBottom: 8,
+  } as TextStyle,
+  toastSub: {
+    fontSize: 12,
+    color: C.textMuted,
+    textAlign: "center",
+  } as TextStyle,
 });
+
+const stylesByMode = { dark: buildStyles(DARK_C), light: buildStyles(LIGHT_C) };
