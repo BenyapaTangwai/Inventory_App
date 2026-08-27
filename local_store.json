@@ -1,0 +1,164 @@
+{
+  "users": [
+    {
+      "user_id": 1,
+      "username": "Nyxpaszin",
+      "password": "@Bento2549",
+      "email": "mikukung19@gmail.com",
+      "role": "admin"
+    },
+    {
+      "user_id": 2,
+      "username": "Bento",
+      "password": "@Bento2549",
+      "email": "mikukung19@gmail.com",
+      "role": "user"
+    },
+    {
+      "user_id": 3,
+      "username": "admin",
+      "password": "admin123",
+      "email": "admin@valmodel.com",
+      "role": "admin"
+    },
+    {
+      "user_id": 5,
+      "username": "Nyx",
+      "password": "B123",
+      "email": "bentokung.mada@gmail.com",
+      "role": "user"
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "name": "Phaseguard Vandal",
+      "type": "Vandal",
+      "vp": 2475,
+      "price": 625,
+      "stock": 9,
+      "image_url": "https://github.com/BenyapaTangwai/Inventory_App/raw/main/image_Product/Phaseguard_Vandal.webp"
+    },
+    {
+      "id": 2,
+      "name": "Reaver Vandal",
+      "type": "Vandal",
+      "vp": 1175,
+      "price": 500,
+      "stock": 2,
+      "image_url": "https://github.com/BenyapaTangwai/Inventory_App/raw/main/image_Product/Reaver_Vandal.webp"
+    },
+    {
+      "id": 3,
+      "name": "CYRAX Vandal",
+      "type": "Vandal",
+      "vp": 2175,
+      "price": 625,
+      "stock": 8,
+      "image_url": "https://github.com/BenyapaTangwai/Inventory_App/raw/main/image_Product/CYRAX_Vandal.webp"
+    },
+    {
+      "id": 4,
+      "name": "Kuronami Vandal",
+      "type": "Vandal",
+      "vp": 2375,
+      "price": 625,
+      "stock": 8,
+      "image_url": "https://static.wikia.nocookie.net/valorant/images/2/2e/Kuronami_Vandal.png/revision/latest?cb=20240109154323"
+    },
+    {
+      "id": 5,
+      "name": "Neo Frontier  Phantom",
+      "type": "Phantom",
+      "vp": 2175,
+      "price": 625,
+      "stock": 0,
+      "image_url": "https://media.valorant-api.com/weaponskinlevels/814fb822-4585-c9fe-85b4-bf8157646ae7/displayicon.png"
+    }
+  ],
+  "orders": [
+    {
+      "order_id": 1787791461041,
+      "order_number": "VAL-6104181",
+      "customer_name": "Bento",
+      "customer_email": "mikukung19@gmail.com",
+      "shipping_address": "RiotID#BENTO",
+      "payment_method": "PromptPay QR",
+      "total_amount": 1125,
+      "total_vp": 3550,
+      "status": "Shipping",
+      "items": [
+        {
+          "id": 2,
+          "name": "Reaver Vandal",
+          "price": 500,
+          "vp": 1175,
+          "quantity": 1
+        },
+        {
+          "id": 5,
+          "name": "Neo Frontier Phantom",
+          "price": 625,
+          "vp": 2175,
+          "quantity": 1
+        }
+      ],
+      "created_at": "2026-08-27 00:44:21"
+    },
+    {
+      "order_id": 101,
+      "order_number": "VAL-89421",
+      "customer_name": "Nyxpaszin",
+      "customer_email": "mikukung19@gmail.com",
+      "shipping_address": "Asia Pacific (AP) - Nyx#BENTO",
+      "payment_method": "PromptPay QR",
+      "total_amount": 625,
+      "total_vp": 2375,
+      "status": "Preparing Model",
+      "items": [
+        {
+          "id": 4,
+          "name": "Kuronami Vandal",
+          "type": "Vandal",
+          "vp": 2375,
+          "price": 625,
+          "quantity": 1,
+          "image_url": "https://static.wikia.nocookie.net/valorant/images/2/2e/Kuronami_Vandal.png/revision/latest?cb=20240109154323"
+        }
+      ],
+      "created_at": "2026-08-26 21:35:00"
+    },
+    {
+      "order_id": 102,
+      "order_number": "VAL-74190",
+      "customer_name": "Bento",
+      "customer_email": "bento.val@gmail.com",
+      "shipping_address": "Thailand - Bento#2549",
+      "payment_method": "Credit Card",
+      "total_amount": 1125,
+      "total_vp": 3650,
+      "status": "Shipping",
+      "items": [
+        {
+          "id": 2,
+          "name": "Reaver Vandal",
+          "type": "Vandal",
+          "vp": 1175,
+          "price": 500,
+          "quantity": 1,
+          "image_url": "https://github.com/BenyapaTangwai/Inventory_App/raw/main/image_Product/Reaver_Vandal.webp"
+        },
+        {
+          "id": 5,
+          "name": "Neo Frontier Phantom",
+          "type": "Phantom",
+          "vp": 2175,
+          "price": 625,
+          "quantity": 1,
+          "image_url": "https://media.valorant-api.com/weaponskinlevels/814fb822-4585-c9fe-85b4-bf8157646ae7/displayicon.png"
+        }
+      ],
+      "created_at": "2026-08-26 22:10:00"
+    }
+  ]
+}
