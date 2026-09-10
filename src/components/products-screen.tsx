@@ -89,11 +89,6 @@ export default function ProductsScreen({
   const [refreshing, setRefreshing] = useState(false);
   const { width: windowWidth } = useWindowDimensions();
   const isAdmin = userRole === "admin";
-
-  // Responsive Grid Calculation
-  // Desktop >= 1024px: 3 columns (32.2%)
-  // Tablet >= 640px: 2 columns (48.8%)
-  // Mobile < 640px: 1 column (100%)
   const isDesktop = windowWidth >= 1024;
   const isTablet = windowWidth >= 640 && windowWidth < 1024;
   const cardWidth = isDesktop ? "32.2%" : isTablet ? "48.8%" : "100%";

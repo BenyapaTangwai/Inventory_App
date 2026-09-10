@@ -4,12 +4,39 @@ const cors = require('cors');
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
+const crypto = require('crypto');
 
 const app = express();
 const port = process.env.PORT || 3027;
 
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
+
+// Uploaded product images live here — this folder is what you browse/manage
+// over FileZilla (FTP) directly on the server.
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+app.use('/api/uploads', express.static(uploadsDir));
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadsDir),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname) || '.jpg';
+      cb(null, `product_${Date.now()}_${crypto.randomBytes(4).toString('hex')}${ext}`);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Only image files are allowed'));
+    }
+    cb(null, true);
+  },
+});
 
 let pool = null;
 
@@ -377,6 +404,23 @@ app.get('/api/products', async (req, res) => {
     console.error('Products Error:', e.message);
     res.status(500).json({ error: 'Failed to fetch products' });
   }
+});
+
+// Upload a product image file (Admin only) — saved to /uploads on disk,
+// which is the same folder you'd see when connecting over FileZilla.
+app.post('/api/upload', requireAdmin, (req, res) => {
+  upload.single('image')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message || 'Failed to upload image' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file provided' });
+    }
+    res.status(201).json({
+      image_url: `/uploads/${req.file.filename}`,
+      message: 'Image uploaded successfully',
+    });
+  });
 });
 
 // Add product (Admin only)

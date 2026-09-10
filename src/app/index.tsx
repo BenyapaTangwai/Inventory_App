@@ -507,46 +507,26 @@ function OwenShopHomeInner() {
     }
   }, [authToken, currentScreen]);
 
-  // Add product handler — persists to the database first; the list is only
-  // updated locally once the API confirms the write, so a failed save never
-  // shows as a false success.
-  const handleAddProduct = async (newProduct: any) => {
-    if (userRole !== "admin") {
-      alert("403 Forbidden: Requires Admin privileges to add products.");
-      return;
-    }
-
-    const result = await apiCall('/products', {
-      method: 'POST',
-      body: JSON.stringify({ ...newProduct, _userRole: userRole }),
-    }, userRole);
-
+  // Add-product-screen.tsx now POSTs to the API directly and only calls this
+  // afterward, with the row the server already created — this just mirrors
+  // that into local state so Home/Products reflect it immediately.
+  const handleAddProduct = (newProduct: any) => {
     const createdItem = {
-      id: result?.id ?? Date.now(),
+      id: newProduct.id ?? Date.now(),
       ...newProduct,
-      _image_url: newProduct.image_url,
+      _image_url: normalizeImageUrl(newProduct.image_url),
     };
 
     setSkins((prev) => [createdItem, ...prev]);
   };
 
-  // Edit product handler — same pattern: only reflected locally after the
-  // database update succeeds.
-  const handleEditProduct = async (id: number | string, updatedProduct: any) => {
-    if (userRole !== "admin") {
-      alert("403 Forbidden: Requires Admin privileges to edit products.");
-      return;
-    }
-
-    await apiCall(`/products/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ ...updatedProduct, _userRole: userRole }),
-    }, userRole);
-
+  // Same pattern as handleAddProduct — edit-product-screen.tsx already
+  // PUT-ed the change itself before calling this.
+  const handleEditProduct = (id: number | string, updatedProduct: any) => {
     setSkins((prev) =>
       prev.map(skin =>
         (skin.id === id || skin._id === id)
-          ? { ...skin, ...updatedProduct, _image_url: updatedProduct.image_url }
+          ? { ...skin, ...updatedProduct, _image_url: normalizeImageUrl(updatedProduct.image_url) }
           : skin
       )
     );
@@ -791,7 +771,6 @@ function OwenShopHomeInner() {
           skins={skins}
           userRole={userRole}
           currentUser={currentUser}
-          apiCall={apiCall}
           onRefreshProducts={fetchProducts}
         />
       ) : activeTab === "Finances" ? (

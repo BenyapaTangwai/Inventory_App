@@ -31,6 +31,15 @@
   ],
   "products": [
     {
+      "id": 1788360318033,
+      "name": "n",
+      "type": "Bucky",
+      "vp": 65489,
+      "price": 5463,
+      "stock": 10,
+      "image_url": "/uploads/product_1788360315901_2d0dc027.jpg"
+    },
+    {
       "id": 1,
       "name": "Phaseguard Vandal",
       "type": "Vandal",

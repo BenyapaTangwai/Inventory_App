@@ -11,7 +11,17 @@ import {
   Modal,
 } from "react-native";
 import { useAppTheme } from "@/theme/theme-context";
-import { OrdersIcon, CartIcon, CheckIcon, SearchIcon } from "@/components/tab-icons";
+import {
+  OrdersIcon,
+  CartIcon,
+  CheckIcon,
+  SearchIcon,
+  CloseIcon,
+  AlertIcon,
+  WrenchIcon,
+  TruckIcon,
+  RefreshIcon,
+} from "@/components/tab-icons";
 
 const DARK_C = {
   bg: "#0a0a0c",
@@ -92,11 +102,13 @@ export interface Order {
   created_at: string;
 }
 
+// API URL to use cloud server
+const API_BASE_URL = "http://119.59.102.161:3027/api";
+
 interface OrdersScreenProps {
   skins: any[];
   userRole?: string;
   currentUser?: any;
-  apiCall: (endpoint: string, options?: any, role?: string) => Promise<any>;
   onRefreshProducts?: () => void;
 }
 
@@ -172,7 +184,6 @@ export default function OrdersScreen({
   skins,
   userRole = "user",
   currentUser,
-  apiCall,
   onRefreshProducts,
 }: OrdersScreenProps) {
   const { mode } = useAppTheme();
@@ -193,29 +204,33 @@ export default function OrdersScreen({
   const [loadingOrders, setLoadingOrders] = useState<boolean>(false);
   const [statusFilter, setStatusFilter] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [catalogImgErrorIds, setCatalogImgErrorIds] = useState<Set<number | string>>(new Set());
 
   // Cart State for Placing Order
   const [cart, setCart] = useState<{ [productId: number]: number }>({});
   const [customerName, setCustomerName] = useState<string>(
-    currentUser?.username || "Nyxpaszin"
+    currentUser?.username || ""
   );
   const [customerEmail, setCustomerEmail] = useState<string>(
-    currentUser?.email || "mikukung19@gmail.com"
+    currentUser?.email || ""
   );
   const [customerIGN, setCustomerIGN] = useState<string>("Chonburi,Thailand");
   const [paymentMethod, setPaymentMethod] = useState<string>("PromptPay");
 
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [successToast, setSuccessToast] = useState<string | null>(null);
+  const [successToast, setSuccessToast] = useState<string | null>(null); 
 
   // Fetch orders from server
   const fetchOrders = async () => {
     try {
       setLoadingOrders(true);
-      const data = await apiCall("/orders", {}, userRole);
-      if (Array.isArray(data) && data.length > 0) {
-        setOrders(data);
+      const response = await fetch(`${API_BASE_URL}/orders`, {
+        headers: { "x-user-role": userRole },
+      });
+      const data = await response.json().catch(() => []);
+      if (response.ok && Array.isArray(data) && data.length > 0) {
+        setOrders(data);  
       }
     } catch (e: any) {
       console.warn("Could not fetch remote orders, using local state:", e.message);
@@ -284,7 +299,7 @@ export default function OrdersScreen({
         vp: Number(product.vp || 0),
         price: Number(product.price || 0),
         quantity: cart[id],
-        image_url: product.image_url || product.image || "",
+        image_url: product._image_url || product.image_url || product.image || "",
       });
     }
     return acc;
@@ -328,14 +343,15 @@ export default function OrdersScreen({
 
       let createdOrder: any = null;
       try {
-        createdOrder = await apiCall(
-          "/orders",
-          {
-            method: "POST",
-            body: JSON.stringify(orderPayload),
-          },
-          userRole
-        );
+        const response = await fetch(`${API_BASE_URL}/orders`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-user-role": userRole },
+          body: JSON.stringify(orderPayload),
+        });
+        createdOrder = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(createdOrder.error || `HTTP Error ${response.status}`);
+        }
       } catch (err: any) {
         console.warn("Server order failed, using local order:", err.message);
         createdOrder = {
@@ -382,14 +398,11 @@ export default function OrdersScreen({
   // Admin status update (Preparing Model -> Shipping -> Completed -> Cancelled)
   const handleUpdateStatus = async (orderId: number, newStatus: OrderStatus) => {
     try {
-      await apiCall(
-        `/orders/${orderId}/status`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ status: newStatus }),
-        },
-        userRole
-      ).catch(() => {});
+      await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-user-role": userRole },
+        body: JSON.stringify({ status: newStatus }),
+      }).catch(() => {});
 
       setOrders((prev) =>
         prev.map((o) => (o.order_id === orderId ? { ...o, status: newStatus } : o))
@@ -471,7 +484,7 @@ export default function OrdersScreen({
       >
         {/* ── Header Section ── */}
         <View style={styles.headerRow}>
-          <View>
+          <View style={styles.headerTextBlock}>
             <View style={styles.titleWithIcon}>
               <OrdersIcon color={C.accent} size={24} />
               <Text style={styles.headerTitle}>
@@ -490,7 +503,8 @@ export default function OrdersScreen({
             onPress={fetchOrders}
             activeOpacity={0.7}
           >
-            <Text style={styles.refreshBtnText}>↻ Refresh</Text>
+            <RefreshIcon color={C.textSecondary} size={14} />
+            <Text style={styles.refreshBtnText}>Refresh</Text>
           </TouchableOpacity>
         </View>
 
@@ -591,6 +605,8 @@ export default function OrdersScreen({
                 const inCartQty = cart[skin.id] || 0;
                 const stock = Number(skin.stock || 0);
                 const isOutOfStock = stock <= 0;
+                const imgUri = skin._image_url || skin.image_url || skin.image;
+                const hasImgError = catalogImgErrorIds.has(skin.id);
 
                 return (
                   <View
@@ -601,11 +617,14 @@ export default function OrdersScreen({
                     ]}
                   >
                     <View style={styles.imageContainer}>
-                      {skin.image_url || skin.image ? (
+                      {imgUri && !hasImgError ? (
                         <Image
-                          source={{ uri: skin.image_url || skin.image }}
+                          source={{ uri: imgUri }}
                           style={styles.skinImage}
                           resizeMode="contain"
+                          onError={() =>
+                            setCatalogImgErrorIds((prev) => new Set(prev).add(skin.id))
+                          }
                         />
                       ) : (
                         <View style={styles.imagePlaceholder}>
@@ -832,7 +851,8 @@ export default function OrdersScreen({
 
               {errorMsg && (
                 <View style={styles.errorBox}>
-                  <Text style={styles.errorText}>⚠️ {errorMsg}</Text>
+                  <AlertIcon color={C.accent} size={14} />
+                  <Text style={styles.errorText}>{errorMsg}</Text>
                 </View>
               )}
 
@@ -1144,8 +1164,9 @@ export default function OrdersScreen({
                                   handleUpdateStatus(order.order_id, "Preparing Model")
                                 }
                               >
+                                <WrenchIcon color={C.amber} size={12} />
                                 <Text style={[styles.statusActionText, { color: C.amber }]}>
-                                  🔨 Crafting
+                                  Crafting
                                 </Text>
                               </TouchableOpacity>
                             )}
@@ -1156,8 +1177,9 @@ export default function OrdersScreen({
                                   handleUpdateStatus(order.order_id, "Shipping")
                                 }
                               >
+                                <TruckIcon color={C.cyan} size={12} />
                                 <Text style={[styles.statusActionText, { color: C.cyan }]}>
-                                  🚚 Shipping
+                                  Shipping
                                 </Text>
                               </TouchableOpacity>
                             )}
@@ -1168,8 +1190,9 @@ export default function OrdersScreen({
                                   handleUpdateStatus(order.order_id, "Completed")
                                 }
                               >
+                                <CheckIcon color={C.green} size={12} />
                                 <Text style={[styles.statusActionText, { color: C.green }]}>
-                                  ✓ Done
+                                  Done
                                 </Text>
                               </TouchableOpacity>
                             )}
@@ -1180,9 +1203,7 @@ export default function OrdersScreen({
                                   handleUpdateStatus(order.order_id, "Cancelled")
                                 }
                               >
-                                <Text style={[styles.statusActionText, { color: C.accent }]}>
-                                  ✕
-                                </Text>
+                                <CloseIcon color={C.accent} size={12} />
                               </TouchableOpacity>
                             )}
                           </View>
@@ -1205,6 +1226,7 @@ const getStyles = (C: Palette) =>
     container: {
       flex: 1,
       backgroundColor: C.bg,
+      overflow: "hidden",
     },
     scrollView: {
       flex: 1,
@@ -1212,12 +1234,21 @@ const getStyles = (C: Palette) =>
     scrollContent: {
       padding: 16,
       paddingBottom: 40,
+      maxWidth: 1200,
+      width: "100%",
+      alignSelf: "center",
     },
     headerRow: {
       flexDirection: "row",
+      flexWrap: "wrap",
       justifyContent: "space-between",
       alignItems: "center",
+      gap: 10,
       marginBottom: 16,
+    },
+    headerTextBlock: {
+      flex: 1,
+      minWidth: 200,
     },
     titleWithIcon: {
       flexDirection: "row",
@@ -1236,6 +1267,10 @@ const getStyles = (C: Palette) =>
       marginTop: 2,
     },
     refreshBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      flexShrink: 0,
       paddingHorizontal: 12,
       paddingVertical: 6,
       backgroundColor: C.surfaceCard,
@@ -1255,6 +1290,7 @@ const getStyles = (C: Palette) =>
     },
     metricCard: {
       flex: 1,
+      minWidth: 0,
       backgroundColor: C.surfaceCard,
       borderRadius: 12,
       padding: 12,
@@ -1623,6 +1659,9 @@ const getStyles = (C: Palette) =>
       color: C.accent,
     },
     errorBox: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
       backgroundColor: "rgba(255, 70, 85, 0.12)",
       borderRadius: 8,
       padding: 10,
@@ -1630,6 +1669,8 @@ const getStyles = (C: Palette) =>
       borderColor: C.accent,
     },
     errorText: {
+      flex: 1,
+      minWidth: 0,
       fontSize: 12,
       color: C.accent,
       fontWeight: "600",
@@ -1883,8 +1924,10 @@ const getStyles = (C: Palette) =>
     },
     orderCardFooter: {
       flexDirection: "row",
+      flexWrap: "wrap",
       justifyContent: "space-between",
       alignItems: "center",
+      rowGap: 8,
       borderTopWidth: 1,
       borderTopColor: C.border,
       paddingTop: 10,
@@ -1906,6 +1949,9 @@ const getStyles = (C: Palette) =>
       justifyContent: "flex-end",
     },
     statusActionBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
       paddingHorizontal: 8,
       paddingVertical: 4,
       borderRadius: 6,

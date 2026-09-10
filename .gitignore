@@ -31,7 +31,12 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# uploaded product images (served from disk, managed via FTP)
+/uploads/*
+!/uploads/.gitkeep
 
 # typescript
 *.tsbuildinfo

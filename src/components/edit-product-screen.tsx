@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,6 +14,7 @@ import {
   TextStyle,
   ImageStyle,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { useAppTheme } from "@/theme/theme-context";
 
 const DARK_C = {
@@ -57,9 +59,12 @@ const LIGHT_C = {
 
 type Palette = typeof DARK_C;
 
+// API URL to use cloud server
+const API_BASE_URL = "http://119.59.102.161:3027/api";
+
 interface EditProductScreenProps {
   onBack?: () => void;
-  onEditProduct: (id: number | string, productData: any) => Promise<void> | void;
+  onEditProduct?: (id: number | string, productData: any) => void;
   initialData: any;
 }
 
@@ -103,6 +108,10 @@ export default function EditProductScreen({ onBack, onEditProduct, initialData }
   const [sizes, setSizes] = useState(initialData?.badge || initialData?.badge_status || initialData?.sizes || "");
   const [imageUrl, setImageUrl] = useState(initialData?._image_url || initialData?.image_url || initialData?.image || "");
   const [imgError, setImgError] = useState(false);
+  const [imageMode, setImageMode] = useState<"url" | "upload">("url");
+  const [localPreviewUri, setLocalPreviewUri] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -114,6 +123,59 @@ export default function EditProductScreen({ onBack, onEditProduct, initialData }
 
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const gunOptions = ["SELECT GUN", "Ares", "Bucky", "Bulldog", "Classic", "Frenzy", "Ghost", "Guardian", "Judge", "Marshal", "Melee", "Odin", "Operator", "Outlaw", "Phantom", "Sheriff", "Shorty", "Spectre", "Stinger", "Vandal"];
+
+  const handlePickImage = async () => {
+    try {
+      setUploadError(null);
+
+      if (Platform.OS !== "web") {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          setUploadError("Permission to access photos was denied");
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 0.85,
+      });
+      if (result.canceled || !result.assets?.length) return;
+
+      const asset = result.assets[0];
+      setLocalPreviewUri(asset.uri);
+      setImgError(false);
+      setUploading(true);
+
+      const formData = new FormData();
+      if (asset.file) {
+        // Web: expo-image-picker hands back the real File/Blob object.
+        formData.append("image", asset.file, asset.fileName || "photo.jpg");
+      } else {
+        // Native: fetch's FormData polyfill accepts a {uri, name, type} descriptor.
+        formData.append("image", {
+          uri: asset.uri,
+          name: asset.fileName || "photo.jpg",
+          type: asset.mimeType || "image/jpeg",
+        } as any);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/upload`, {
+        method: "POST",
+        headers: { "x-user-role": "admin" },
+        body: formData,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(data.error || `HTTP Error ${response.status}`);
+      }
+      setImageUrl(data.image_url);
+    } catch (err: any) {
+      setUploadError(err.message || "Failed to upload image");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -152,7 +214,20 @@ export default function EditProductScreen({ onBack, onEditProduct, initialData }
         tagText: "#ff6b77",
       };
 
-      await onEditProduct(initialData.id || initialData._id, productPayload);
+      const productId = initialData.id || initialData._id;
+      const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "x-user-role": "admin" },
+        body: JSON.stringify(productPayload),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP Error ${response.status}`);
+      }
+
+      if (onEditProduct) {
+        onEditProduct(productId, productPayload);
+      }
 
       setSuccessMsg("Product updated successfully!");
       // Clear form
@@ -161,6 +236,8 @@ export default function EditProductScreen({ onBack, onEditProduct, initialData }
       setPrice("");
       setVp("");
       setImageUrl("");
+      setLocalPreviewUri("");
+      setImageMode("url");
 
       // Auto-navigate back to Products after 1.5 seconds
       setTimeout(() => {
@@ -449,59 +526,124 @@ export default function EditProductScreen({ onBack, onEditProduct, initialData }
           )}
         </View>
 
-        {/* Image URL */}
+        {/* Product Image */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Image URL</Text>
-          <TextInput
-            style={[
-              styles.input,
-              focusedField === "imageUrl" && styles.inputFocused,
-            ]}
-            placeholder="Enter image URL (https://...)"
-            placeholderTextColor={C.textMuted}
-            value={imageUrl}
-            onChangeText={(text) => {
-              setImageUrl(text);
-              setImgError(false);
-            }}
-            onFocus={() => setFocusedField("imageUrl")}
-            onBlur={() => setFocusedField(null)}
-          />
+          <Text style={styles.label}>Product Image</Text>
 
-          {/* Preset image picker chips */}
-          <Text style={styles.presetTitle}>หรือเลือกรูปตัวอย่างจากระบบ:</Text>
-          <View style={styles.presetRow}>
-            {PRESET_IMAGES.map((item, idx) => (
-              <TouchableOpacity
-                key={idx}
+          {/* URL vs Upload mode switcher */}
+          <View style={styles.imageModeRow}>
+            <TouchableOpacity
+              style={[
+                styles.imageModeBtn,
+                imageMode === "url" && styles.imageModeBtnActive,
+              ]}
+              onPress={() => setImageMode("url")}
+              activeOpacity={0.7}
+            >
+              <Text
                 style={[
-                  styles.presetChip,
-                  imageUrl === item.url && styles.presetChipActive,
+                  styles.imageModeBtnText,
+                  imageMode === "url" && styles.imageModeBtnTextActive,
                 ]}
-                onPress={() => {
-                  setImageUrl(item.url);
-                  setImgError(false);
-                }}
-                activeOpacity={0.7}
               >
-                <Text
-                  style={[
-                    styles.presetChipText,
-                    imageUrl === item.url && styles.presetChipTextActive,
-                  ]}
-                >
-                  {item.name}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                Link URL
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.imageModeBtn,
+                imageMode === "upload" && styles.imageModeBtnActive,
+              ]}
+              onPress={() => setImageMode("upload")}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.imageModeBtnText,
+                  imageMode === "upload" && styles.imageModeBtnTextActive,
+                ]}
+              >
+                Upload File
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Image Preview if URL provided */}
-          {imageUrl ? (
+          {imageMode === "url" ? (
+            <>
+              <TextInput
+                style={[
+                  styles.input,
+                  focusedField === "imageUrl" && styles.inputFocused,
+                ]}
+                placeholder="Enter image URL (https://...)"
+                placeholderTextColor={C.textMuted}
+                value={imageUrl}
+                onChangeText={(text) => {
+                  setImageUrl(text);
+                  setLocalPreviewUri("");
+                  setImgError(false);
+                }}
+                onFocus={() => setFocusedField("imageUrl")}
+                onBlur={() => setFocusedField(null)}
+              />
+
+              {/* Preset image picker chips */}
+              <Text style={styles.presetTitle}>หรือเลือกรูปตัวอย่างจากระบบ:</Text>
+              <View style={styles.presetRow}>
+                {PRESET_IMAGES.map((item, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[
+                      styles.presetChip,
+                      imageUrl === item.url && styles.presetChipActive,
+                    ]}
+                    onPress={() => {
+                      setImageUrl(item.url);
+                      setLocalPreviewUri("");
+                      setImgError(false);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.presetChipText,
+                        imageUrl === item.url && styles.presetChipTextActive,
+                      ]}
+                    >
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          ) : (
+            <View>
+              <TouchableOpacity
+                style={styles.uploadBtn}
+                onPress={handlePickImage}
+                disabled={uploading}
+                activeOpacity={0.8}
+              >
+                {uploading ? (
+                  <ActivityIndicator color={C.accent} size="small" />
+                ) : (
+                  <Text style={styles.uploadBtnText}>
+                    📁 {localPreviewUri ? "Choose a different file" : "Choose Image File"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+              {uploadError && (
+                <Text style={styles.uploadErrorText}>⚠️ {uploadError}</Text>
+              )}
+            </View>
+          )}
+
+          {/* Image Preview */}
+          {(imageMode === "upload" ? localPreviewUri : imageUrl) ? (
             <View style={styles.imagePreviewBox}>
               {!imgError ? (
                 <Image
-                  source={{ uri: imageUrl }}
+                  source={{ uri: imageMode === "upload" ? localPreviewUri : imageUrl }}
                   style={styles.imagePreview}
                   resizeMode="contain"
                   onError={() => setImgError(true)}
@@ -515,9 +657,9 @@ export default function EditProductScreen({ onBack, onEditProduct, initialData }
 
         {/* Submit Button */}
         <TouchableOpacity
-          style={[styles.submitBtn, loading && styles.submitBtnDisabled]}
+          style={[styles.submitBtn, (loading || uploading) && styles.submitBtnDisabled]}
           onPress={handleSubmit}
-          disabled={loading}
+          disabled={loading || uploading}
           activeOpacity={0.8}
         >
           {loading ? (
@@ -652,6 +794,55 @@ const buildStyles = (C: Palette) => StyleSheet.create({
     height: 72,
     textAlignVertical: "top",
   } as any,
+
+  // Image mode switcher (URL vs Upload)
+  imageModeRow: {
+    flexDirection: "row",
+    backgroundColor: C.surfaceCard,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 3,
+    gap: 4,
+    marginBottom: 6,
+  } as ViewStyle,
+  imageModeBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignItems: "center",
+  } as ViewStyle,
+  imageModeBtnActive: {
+    backgroundColor: C.accent,
+  } as ViewStyle,
+  imageModeBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: C.textSecondary,
+  } as TextStyle,
+  imageModeBtnTextActive: {
+    color: "#ffffff",
+  } as TextStyle,
+  uploadBtn: {
+    backgroundColor: C.surfaceCard,
+    borderWidth: 1,
+    borderColor: C.border,
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  } as ViewStyle,
+  uploadBtnText: {
+    color: C.textPrimary,
+    fontSize: 13,
+    fontWeight: "600",
+  } as TextStyle,
+  uploadErrorText: {
+    color: C.error,
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 6,
+  } as TextStyle,
 
   // Presets
   presetTitle: {

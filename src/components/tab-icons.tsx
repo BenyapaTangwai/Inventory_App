@@ -364,6 +364,50 @@ export const CheckIcon = ({ color = '#22c55e', size = 24 }: IconProps) => (
 );
 
 /**
+ * Wrench / Tool Icon — used for "Preparing / Crafting" status
+ */
+export const WrenchIcon = ({ color = '#f59e0b', size = 24 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+/**
+ * Truck Icon — used for "Shipping" status
+ */
+export const TruckIcon = ({ color = '#38bdf8', size = 24 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Rect x="1" y="3" width="15" height="13" rx="1" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    <Path d="M16 8H20L23 11V16H16V8Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    <Circle cx="5.5" cy="18.5" r="2.5" stroke={color} strokeWidth={2} />
+    <Circle cx="18.5" cy="18.5" r="2.5" stroke={color} strokeWidth={2} />
+  </Svg>
+);
+
+/**
+ * Refresh Icon — circular arrows
+ */
+export const RefreshIcon = ({ color = '#ffffff', size = 20 }: IconProps) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path d="M23 4V10H17" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    <Path d="M1 20V14H7" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    <Path
+      d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"
+      stroke={color}
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </Svg>
+);
+
+/**
  * Deluxe Category Icon (Diamond)
  */
 export const DeluxeIcon = ({ color = '#38bdf8', size = 24 }: IconProps) => (
